@@ -1,168 +1,158 @@
 <!doctype html>
 <html lang="es">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>SOC - Documentación y Comandos</title>
-<style>
-  :root {
-    color-scheme: light dark;
-    --bg: #f7f7f7;
-    --fg: #111;
-    --accent: #007bff;
-    --card: #fff;
-    --border: #ccc;
-  }
-  @media (prefers-color-scheme: dark) {
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>SOC — Manual Personal de Seguridad y Comandos</title>
+  <style>
     :root {
-      --bg: #111;
-      --fg: #e8e8e8;
-      --accent: #00bfff;
-      --card: #1a1a1a;
-      --border: #333;
+      --bg: #0b1220;
+      --fg: #eaeaea;
+      --accent: #3fa9f5;
+      --card: #141c2f;
+      --border: #1f2b40;
+      --muted: #99a3b5;
     }
-  }
-  [data-theme="dark"] {
-    --bg: #111;
-    --fg: #e8e8e8;
-    --accent: #00bfff;
-    --card: #1a1a1a;
-    --border: #333;
-  }
-  [data-theme="light"] {
-    --bg: #f7f7f7;
-    --fg: #111;
-    --accent: #007bff;
-    --card: #fff;
-    --border: #ccc;
-  }
 
-  body {
-    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    background: var(--bg);
-    color: var(--fg);
-    max-width: 900px;
-    margin: 2rem auto;
-    padding: 1rem 2rem;
-    line-height: 1.6;
-    transition: background .3s, color .3s;
-  }
-  header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-  }
-  h1 {
-    font-size: 1.7rem;
-    margin: 0.3rem 0;
-  }
-  button.theme-toggle {
-    background: var(--card);
-    color: var(--fg);
-    border: 1px solid var(--border);
-    border-radius: .3rem;
-    padding: .3rem .6rem;
-    cursor: pointer;
-  }
-  button.theme-toggle:hover {
-    background: var(--accent);
-    color: #fff;
-  }
-  h2 {
-    margin-top: 2rem;
-    color: var(--accent);
-    border-bottom: 1px solid var(--border);
-    padding-bottom: .3rem;
-  }
-  ul {list-style: none; padding: 0;}
-  li {margin: .4rem 0;}
-  a {
-    color: var(--accent);
-    text-decoration: none;
-  }
-  a:hover {
-    text-decoration: underline;
-    opacity: .9;
-  }
-  pre {
-    background: var(--card);
-    border: 1px solid var(--border);
-    padding: .7rem;
-    border-radius: .4rem;
-    overflow-x: auto;
-    font-family: monospace;
-  }
-  code {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: .3rem;
-    padding: .15rem .3rem;
-  }
-  footer {
-    text-align: center;
-    margin-top: 3rem;
-    font-size: .85rem;
-    color: var(--fg);
-    opacity: .7;
-    border-top: 1px solid var(--border);
-    padding-top: 1rem;
-  }
-</style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--fg);
+    }
+
+    header {
+      border-bottom: 1px solid var(--border);
+      padding: 2rem 1.5rem;
+      text-align: center;
+    }
+
+    header h1 {
+      font-weight: 600;
+      font-size: 1.8rem;
+      margin: 0 0 0.5rem 0;
+    }
+
+    header p {
+      color: var(--muted);
+      margin: 0;
+      font-size: 0.95rem;
+    }
+
+    main {
+      max-width: 900px;
+      margin: 2rem auto;
+      padding: 0 1.5rem;
+    }
+
+    h2 {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: var(--accent);
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.4rem;
+      margin-bottom: 1rem;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1rem;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 1rem 1.2rem;
+      transition: all 0.2s ease;
+    }
+
+    .card:hover {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+    }
+
+    a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    footer {
+      text-align: center;
+      border-top: 1px solid var(--border);
+      margin-top: 3rem;
+      padding: 1rem;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    code {
+      background: #111a2c;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0.3rem 0.5rem;
+      font-size: 0.9rem;
+      color: var(--accent);
+      display: block;
+      margin-top: 0.5rem;
+    }
+
+    @media (max-width: 600px) {
+      header {
+        padding: 1.5rem 1rem;
+      }
+      main {
+        padding: 0 1rem;
+      }
+    }
+  </style>
 </head>
 <body>
 
-<header>
-  <div>
-    <h1>📘 SOC — Manual Personal de Seguridad y Comandos</h1>
-    <p style="margin:0;color:var(--accent)">Documentación técnica, guías y referencias rápidas</p>
-  </div>
-  <button class="theme-toggle" id="themeButton" title="Cambiar tema">🌓</button>
-</header>
+  <header>
+    <h1>SOC — Manual Personal de Seguridad y Comandos</h1>
+    <p>Documentación técnica, guías y referencias rápidas sobre análisis, defensa y operaciones de ciberseguridad.</p>
+  </header>
 
-<h2>📂 Secciones disponibles</h2>
-<ul>
-  <li><a href="pagina_de_comandos_linux_kali_por_categorias.html">Comandos Linux (Kali) por categorías</a></li>
-  <li><a href="git_github_manual_v2.html">Git / GitHub — Manual</a></li>
-  <li><a href="analisis_de_incidentes_v3.html">Análisis de incidentes</a></li>
-  <li><a href="gestion_de_incidentes.html">Gestión de incidentes</a></li>
-  <li><a href="respuesta_a_incidentes.html">Respuesta a incidentes</a></li>
-  <li><a href="respuesta_y_contencion_v2.html">Respuesta y contención (v2)</a></li>
-  <li><a href="misp_inteligencia_de_amenazas.html">MISP — Inteligencia de amenazas</a></li>
-  <li><a href="hunting_de_amenazas.html">Hunting de amenazas</a></li>
-  <li><a href="amenazas_avanzadas_mitre_ttp.html">Amenazas avanzadas — MITRE TTP</a></li>
-  <li><a href="hardening_y_controles_preventivos.html">Hardening y controles preventivos</a></li>
-  <li><a href="playbooks_y_automatizacion.html">Playbooks y automatización</a></li>
-  <li><a href="reportes_documentacion_soc.html">Reportes y documentación SOC</a></li>
-  <li><a href="monitoreo_y_siem_v2.html">Monitoreo y SIEM</a></li>
-  <li><a href="dashboards_y_monitoreo.html">Dashboards y monitoreo</a></li>
-  <li><a href="detecciones_en_splunk.html">Detecciones en Splunk</a></li>
-  <li><a href="forense_memoria_y_disco.html">Forense — Memoria y disco</a></li>
-</ul>
+  <main>
+    <h2>Secciones disponibles</h2>
+    <div class="grid">
 
-<h2>🧠 Uso rápido</h2>
-<p>Accede desde cualquier navegador o terminal:</p>
-<pre><code>lynx https://iguthe.github.io/SOC/</code></pre>
+      <div class="card"><a href="pagina_de_comandos_linux_kali_por_categorias.html">Comandos Linux (Kali) por categorías</a></div>
+      <div class="card"><a href="git_github_manual_v2.html">Git / GitHub — Manual</a></div>
+      <div class="card"><a href="analisis_de_incidentes_v3.html">Análisis de incidentes</a></div>
+      <div class="card"><a href="gestion_de_incidentes.html">Gestión de incidentes</a></div>
+      <div class="card"><a href="respuesta_a_incidentes.html">Respuesta a incidentes</a></div>
+      <div class="card"><a href="respuesta_y_contencion_v2.html">Respuesta y contención (v2)</a></div>
+      <div class="card"><a href="misp_inteligencia_de_amenazas.html">MISP — Inteligencia de amenazas</a></div>
+      <div class="card"><a href="hunting_de_amenazas.html">Hunting de amenazas</a></div>
+      <div class="card"><a href="amenazas_avanzadas_mitre_ttp.html">Amenazas avanzadas — MITRE TTP</a></div>
+      <div class="card"><a href="hardening_y_controles_preventivos.html">Hardening y controles preventivos</a></div>
+      <div class="card"><a href="playbooks_y_automatizacion.html">Playbooks y automatización</a></div>
+      <div class="card"><a href="reportes_documentacion_soc.html">Reportes y documentación SOC</a></div>
+      <div class="card"><a href="monitoreo_y_siem_v2.html">Monitoreo y SIEM</a></div>
+      <div class="card"><a href="dashboards_y_monitoreo.html">Dashboards y monitoreo</a></div>
+      <div class="card"><a href="detecciones_en_splunk.html">Detecciones en Splunk</a></div>
+      <div class="card"><a href="forense_memoria_y_disco.html">Forense — Memoria y disco</a></div>
 
-<p>También puedes abrir directamente una sección, por ejemplo:</p>
-<pre><code>https://iguthe.github.io/SOC/hunting_de_amenazas.html</code></pre>
+    </div>
 
-<footer>
-  © 2025 iguthe — Manual personal SOC.  
-  <br>Repositorio: <a href="https://github.com/iguthe/SOC">github.com/iguthe/SOC</a>
-</footer>
+    <h2 style="margin-top:2.5rem;">Acceso rápido desde terminal</h2>
+    <code>lynx https://iguthe.github.io/soc/</code>
+    <code>w3m https://iguthe.github.io/soc/</code>
+  </main>
 
-<script>
-  const btn = document.getElementById('themeButton');
-  const currentTheme = localStorage.getItem('theme');
-  if (currentTheme) document.documentElement.dataset.theme = currentTheme;
-
-  btn.addEventListener('click', () => {
-    const now = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
-    document.documentElement.dataset.theme = now;
-    localStorage.setItem('theme', now);
-  });
-</script>
+  <footer>
+    © 2025 iguthe — Manual SOC. Repositorio público: 
+    <a href="https://github.com/iguthe/soc">github.com/iguthe/soc</a>
+  </footer>
 
 </body>
 </html>
+
