@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gestión de Incidentes — Manual SOC</title>
+<style>
+:root{
+  --bg:#0b1020;--panel:#121a33;--muted:#98a2b3;--text:#e6e8ef;--chip:#243056;--border:#1d2747;--card:#0f162b;
+}
+html{scroll-behavior:smooth}
+body{margin:0;background:linear-gradient(180deg,#0a0f21,#0b1126);color:var(--text);
+  font:14px/1.6 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,"Helvetica Neue",Arial;}
+header{position:sticky;top:0;z-index:100;background:rgba(11,17,38,.85);border-bottom:1px solid var(--border);backdrop-filter:saturate(180%) blur(10px)}
+.wrap{max-width:1100px;margin:auto;padding:16px}
+h1{margin:8px 0 4px;font-size:22px}
+.subtitle{margin:0 0 12px;color:var(--muted)}
+.grid{display:grid;grid-template-columns:260px 1fr;gap:16px}
+nav{position:sticky;top:86px;align-self:start;background:var(--panel);border:1px solid var(--border);
+  border-radius:14px;padding:8px;max-height:calc(100vh - 110px);overflow:auto}
+.cat{display:block;padding:10px 12px;border-radius:10px;color:#cdd3ea;text-decoration:none;border:1px solid transparent}
+.cat.active,.cat:hover{background:var(--chip);border-color:#2a3864}
+main{display:grid;gap:16px}
+section{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:12px}
+section h2{margin:6px 6px 8px;font-size:17px;display:flex;justify-content:space-between;align-items:center}
+.label{font-size:12px;color:#a0aec0;border:1px solid #2a3864;background:#0f162b;padding:3px 8px;border-radius:8px;margin-left:8px;white-space:nowrap}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:4px}
+.cmd{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.desc{color:#a0aec0;font-size:13px}
+.btn{align-self:flex-start;border:1px solid var(--border);background:var(--chip);color:#cdd8ff;padding:6px 10px;border-radius:8px;cursor:pointer;font-size:13px}
+.btn:hover{border-color:#32406f}
+.searchbar{margin-top:8px;margin-bottom:12px}
+input[type=search]{width:100%;padding:10px;border-radius:8px;border:1px solid var(--border);background:#0c1430;color:var(--text)}
+#topBtn{position:fixed;bottom:25px;right:25px;background:#243056;border:1px solid #32406f;color:#cdd8ff;
+  border-radius:50%;width:45px;height:45px;font-size:22px;cursor:pointer;display:none;align-items:center;justify-content:center;transition:0.3s}
+#topBtn:hover{background:#32406f}
+@media(max-width:900px){.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+<h1>Gestión de Incidentes</h1>
+<p class="subtitle">Clasificación, escalamiento, comunicación, seguimiento e integraciones (TheHive, MISP, APIs) — con comandos de terminal listos para uso.</p>
+<div class="searchbar"><input id="q" type="search" placeholder="Buscar comando o técnica..."></div>
+</div></header>
+<div class="wrap grid">
+<nav id="nav"></nav>
+<main id="content"></main>
+</div>
+<footer style="text-align:center;color:var(--muted);padding:16px">Manual de referencia SOC — Gestión de Incidentes</footer>
+<button id="topBtn" title="Volver arriba">⬆</button>
+<script>
+const DATA=[
+{cat:"Clasificación y Priorización",label:"Comandos de Terminal",items:[
+{cmd:"cat alerta.json | jq '.severity, .category, .source, .timestamp'",desc:"Extrae severidad, categoría, fuente y tiempo desde un JSON de alerta."},
+{cmd:"jq -r '.alerts[] | select(.severity>=3) | [.id,.severity,.title] | @tsv' feed.json",desc:"Filtra y lista alertas de severidad alta (>=3) en formato TSV."},
+{cmd:"grep -Ei 'critical|high|sev(3|4|5)' *.log",desc:"Búsqueda rápida de términos de severidad en logs locales."},
+{cmd:"awk -F, '$3 >= 3 {print $1, $2, $3}' alertas.csv",desc:"Clasifica por severidad desde CSV (columna 3=severidad)." },
+{cmd:"curl -s -H 'Authorization: Splunk <TOKEN>' https://splunk.local:8089/services/search/jobs/export -d search='search index=alerts severity>=3 | table _time, host, title, severity' -d output_mode=csv",desc:"Exporta desde Splunk alertas de severidad alta vía REST (CSV)."},
+{cmd:"sed -n '1,200p' alertas_hoy.log | sort | uniq -c | sort -nr | head -20",desc:"Top 20 tipos de alertas del día por frecuencia."}]},
+{cat:"Escalamiento y Coordinación",label:"Comandos de Terminal",items:[
+{cmd:"echo 'Incidente SEV-2 en host X. Acciones: contención en curso.' | mail -s '[SEV-2] Contención' soc-oncall@tuempresa.com",desc:"Notifica por correo a la guardia SOC con asunto estándar."},
+{cmd:"curl -X POST -H 'Content-type: application/json' --data '{\"text\":[\"[SEV-2] Escalación a Blue Team. Ticket #1234\"]}' https://hooks.slack.com/services/XXX/YYY/ZZZ",desc:"Publica un aviso de escalación en Slack (Webhook)."},
+{cmd:"curl -s -H 'Authorization: Bearer <TOKEN>' -H 'Content-Type: application/json' -d '{\"channel\":\"#soc\",\"text\":\"Puente de coordinación abierto: meet id 999-888\"}' https://slack.com/api/chat.postMessage",desc:"Crea mensaje en canal SOC con enlace de puente de coordinación."},
+{cmd:"ssh user@bastion 'sudo iptables -I INPUT -s 1.2.3.4 -j DROP'",desc:"Acción de contención inmediata: bloqueo IP desde bastión."},
+{cmd:"ansible compromised_hosts -m shell -a 'systemctl stop suspicious.service' -b",desc:"Orquestación: detiene un servicio sospechoso en hosts comprometidos."},
+{cmd:"curl -s -X POST 'https://thehive.local/api/case/_search' -H 'Authorization: Bearer <TOKEN>' -H 'Content-Type: application/json' -d '{\"query\":[{\"_name\":\"list\"}],\"range\":0,\"sort\":[{\"_createdAt\":\"desc\"}]}' | jq '.[0]'",desc:"Recupera el caso más reciente en TheHive para coordinar acciones."}]},
+{cat:"Comunicación y Reportes",label:"Comandos de Terminal",items:[
+{cmd:"date -u +'%Y-%m-%dT%H:%M:%SZ' >> timeline.txt",desc:"Anota un hito con timestamp UTC para la línea de tiempo del incidente."},
+{cmd:"echo '[TLP:AMBER] Resumen inicial: vector sospechado, alcance, impacto potencial.' >> reporte.md",desc:"Append de resumen inicial con etiqueta TLP en el informe."},
+{cmd:"sar -n DEV 1 5 | tee -a artefactos/red.txt",desc:"Captura de actividad de red (sar) como artefacto para el informe."},
+{cmd:"journalctl -xe --no-pager | tail -200 >> artefactos/syslog_ultimos.txt",desc:"Incluye últimos eventos del sistema en artefactos del caso."},
+{cmd:"curl -s -H 'Authorization: Splunk <TOKEN>' https://splunk.local:8089/services/search/jobs/export -d search='search index=proxy error OR blocked | timechart span=5m count' -d output_mode=raw > charts/proxy_timechart.json",desc:"Genera dataset temporal desde Splunk para gráficos en el reporte."},
+{cmd:"pandoc reporte.md -o reporte.pdf",desc:"Compila el reporte del incidente a PDF con Pandoc."}]},
+{cat:"Registro y Seguimiento",label:"Comandos de Terminal",items:[
+{cmd:"echo 'INC-2025-0012|SEV-2|Ransomware sospechado|Owner: blue' >> tracker.csv",desc:"Registra incidente en un CSV de seguimiento interno."},
+{cmd:"awk -F'|' '{printf \"%-12s %-5s %-25s %-12s\\n\", $1,$2,$3,$4}' tracker.csv | column -t",desc:"Visualiza tablero de incidentes en consola."},
+{cmd:"git add tracker.csv && git commit -m 'update: INC-2025-0012 status' && git push origin main",desc:"Control de cambios del registro (repositorio interno)."},
+{cmd:"crontab -l | { cat; echo '*/30 * * * * /usr/local/bin/export_incidentes.sh'; } | crontab -",desc:"Automatiza exportaciones de estado cada 30 minutos."},
+{cmd:"sqlite3 soc.db \"CREATE TABLE IF NOT EXISTS incidents(id TEXT, sev TEXT, title TEXT, owner TEXT, ts DATETIME DEFAULT CURRENT_TIMESTAMP);\"",desc:"Crea tabla SQLite para incidentes si no existe."},
+{cmd:"sqlite3 soc.db \"INSERT INTO incidents(id,sev,title,owner) VALUES('INC-2025-0012','SEV-2','Ransom sospechado','blue');\"",desc:"Inserta un registro de incidente en base local."}]},
+{cat:"Integraciones (TheHive, MISP y APIs)",label:"Comandos de Terminal",items:[
+{cmd:"curl -s -H 'Authorization: Bearer <THEHIVE_TOKEN>' -H 'Content-Type: application/json' -d '{\"title\":\"INC-2025-0013\",\"severity\":2,\"tlp\":2,\"tags\":[\"ransom\",\"C2\"],\"description\":\"Caso creado desde CLI\"}' https://thehive.local/api/case | jq '.id'",desc:"Crea un caso en TheHive por API y retorna su ID."},
+{cmd:"curl -s -H 'Authorization: Bearer <THEHIVE_TOKEN>' -H 'Content-Type: application/json' -d '{\"_type\":\"case_artifact\",\"dataType\":\"ip\",\"data\":\"1.2.3.4\",\"message\":\"IP sospechosa\"}' https://thehive.local/api/case/<CASE_ID>/artifact",desc:"Adjunta un artefacto (IoC) a un caso en TheHive."},
+{cmd:"curl -s -H 'Authorization: <MISP_KEY>' -H 'Accept: application/json' -H 'Content-Type: application/json' -d '{\"returnFormat\":\"json\",\"value\":\"1.2.3.4\"}' https://misp.local/events/restSearch | jq '.response'",desc:"Busca un IoC (IP) en MISP y devuelve coincidencias."},
+{cmd:"curl -s -H 'Authorization: <MISP_KEY>' -H 'Accept: application/json' -H 'Content-Type: application/json' -d @evento.json https://misp.local/events/add | jq '.Event.info'",desc:"Publica un evento en MISP a partir de un JSON preparado."},
+{cmd:"curl -s -H 'Authorization: Splunk <TOKEN>' -d search='search index=wineventlog EventCode=4625 | stats count by Account_Name, Workstation_Name' https://splunk.local:8089/services/search/jobs/export -d output_mode=json | jq '.results[0:5]'",desc:"Ejecuta búsqueda en Splunk vía API y muestra top 5 resultados."},
+{cmd:"curl -s -X POST https://api.pagerduty.com/incidents -H 'Authorization: Token token=<PD_TOKEN>' -H 'Content-Type: application/json' -H 'Accept: application/vnd.pagerduty+json;version=2' -d @pd_incident.json | jq '.incident.status'",desc:"Abre incidente en PagerDuty por API y muestra su estado."}]}
+];
+
+const nav=document.getElementById('nav'),content=document.getElementById('content');
+DATA.forEach((s,i)=>{
+  const a=document.createElement('a');a.href=`#sec-${i}`;a.textContent=s.cat;a.className='cat';
+  if(i===0)a.classList.add('active');
+  a.onclick=()=>{document.querySelectorAll('.cat').forEach(x=>x.classList.remove('active'));a.classList.add('active');};
+  nav.appendChild(a);
+  const sec=document.createElement('section');sec.id=`sec-${i}`;
+  const h2=document.createElement('h2');h2.textContent=s.cat;
+  const label=document.createElement('span');label.className='label';label.textContent=s.label;h2.append(label);
+  sec.append(h2);
+  s.items.forEach(it=>{
+    const card=document.createElement('div');card.className='card';
+    const cmd=document.createElement('div');cmd.className='cmd';cmd.textContent=it.cmd;
+    const btn=document.createElement('button');btn.className='btn';btn.textContent='Copiar';
+    btn.onclick=()=>{navigator.clipboard.writeText(it.cmd).then(()=>{btn.textContent='Copiado';setTimeout(()=>btn.textContent='Copiar',1200);});};
+    const desc=document.createElement('div');desc.className='desc';desc.textContent=it.desc;
+    card.append(cmd,btn,desc);sec.appendChild(card);
+  });
+  content.appendChild(sec);
+});
+document.getElementById('q').addEventListener('input',e=>{
+  const term=e.target.value.toLowerCase();
+  document.querySelectorAll('section').forEach(sec=>{
+    let visible=false;sec.querySelectorAll('.card').forEach(card=>{
+      const match=card.textContent.toLowerCase().includes(term);
+      card.style.display=match?'flex':'none';if(match)visible=true;});
+    sec.style.display=visible||!term?'block':'none';
+  });
+});
+const topBtn=document.getElementById('topBtn');
+window.addEventListener('scroll',()=>{topBtn.style.display=document.documentElement.scrollTop>400?'flex':'none';});
+topBtn.addEventListener('click',()=>{window.scrollTo({top:0,behavior:'smooth'});});
+</script>
+</body>
+</html>

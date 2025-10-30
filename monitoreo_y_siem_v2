@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Monitoreo y SIEM — Manual SOC (v2)</title>
+<style>
+:root{
+  --bg:#0b1020;--panel:#121a33;--muted:#98a2b3;--text:#e6e8ef;--chip:#243056;--border:#1d2747;
+}
+body{margin:0;background:linear-gradient(180deg,#0a0f21,#0b1126);color:var(--text);
+  font:14px/1.6 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,"Helvetica Neue",Arial;}
+header{position:sticky;top:0;z-index:100;background:rgba(11,17,38,.85);border-bottom:1px solid var(--border);backdrop-filter:saturate(180%) blur(10px)}
+.wrap{max-width:1100px;margin:auto;padding:16px}
+h1{margin:8px 0 4px;font-size:22px}
+.subtitle{margin:0 0 12px;color:var(--muted)}
+.grid{display:grid;grid-template-columns:260px 1fr;gap:16px}
+nav{position:sticky;top:86px;align-self:start;background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:8px;max-height:calc(100vh - 110px);overflow:auto}
+.cat{display:block;padding:10px 12px;border-radius:10px;color:#cdd3ea;text-decoration:none;border:1px solid transparent}
+.cat.active,.cat:hover{background:var(--chip);border-color:#2a3864}
+main{display:grid;gap:16px}
+section{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:12px}
+section h2{margin:6px 6px 8px;font-size:17px}
+.card{background:#0f162b;border:1px solid var(--border);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:4px}
+.cmd{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.desc{color:#a0aec0;font-size:13px}
+.btn{align-self:flex-start;border:1px solid var(--border);background:var(--chip);color:#cdd8ff;padding:6px 10px;border-radius:8px;cursor:pointer;font-size:13px}
+.btn:hover{border-color:#32406f}
+.searchbar{margin-top:8px;margin-bottom:12px}
+input[type=search]{width:100%;padding:10px;border-radius:8px;border:1px solid var(--border);background:#0c1430;color:var(--text)}
+#topBtn{position:fixed;bottom:25px;right:25px;background:#243056;border:1px solid #32406f;color:#cdd8ff;
+  border-radius:50%;width:45px;height:45px;font-size:22px;cursor:pointer;display:none;align-items:center;justify-content:center;transition:0.3s}
+#topBtn:hover{background:#32406f}
+@media(max-width:900px){.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+<h1>Monitoreo y SIEM</h1>
+<p class="subtitle">Consultas y comandos avanzados para Splunk, Elastic/Kibana, Wazuh y Graylog. Enfocado en detección, alertas y administración SOC.</p>
+<div class="searchbar"><input id="q" type="search" placeholder="Buscar comando o consulta..."></div>
+</div></header>
+<div class="wrap grid">
+<nav id="nav"></nav>
+<main id="content"></main>
+</div>
+<footer style="text-align:center;color:var(--muted);padding:16px">Manual de referencia SOC — Monitoreo y SIEM (v2)</footer>
+<button id="topBtn" title="Volver arriba">⬆</button>
+<script>
+const DATA=[
+{cat:"Splunk",items:[
+{cmd:'index=auth sourcetype=linux_secure "Failed password" | stats count by user, src',desc:"Detecta intentos de inicio de sesión fallidos en Linux, agrupados por usuario y origen."},
+{cmd:'index=windows EventCode=4625 | stats count by Account_Name, Workstation_Name',desc:"Muestra intentos fallidos de autenticación en sistemas Windows."},
+{cmd:'index=wineventlog EventCode=4624 OR EventCode=4634 | stats count by Account_Name, host',desc:"Registra los inicios y cierres de sesión exitosos en sistemas Windows."},
+{cmd:'index=wineventlog EventCode=4720 OR EventCode=4722 | table _time, user, src',desc:"Detecta creación o habilitación de cuentas de usuario."},
+{cmd:'index=wineventlog EventCode=4723 OR EventCode=4724 | table _time, user, src',desc:"Detecta cambios de contraseña o restablecimientos en AD."},
+{cmd:'index=sysmon EventCode=1 | stats count by process_name, parent_process_name',desc:"Muestra procesos creados y sus procesos padres."},
+{cmd:'index=sysmon EventCode=11 file_name!=null | stats count by file_name, dest',desc:"Detecta creación de archivos sospechosos o ejecutables."},
+{cmd:'index=sysmon EventCode=7 | table _time, ImageLoaded, process_name',desc:"Monitorea carga de librerías DLL sospechosas."},
+{cmd:'index=proxy OR index=web http_method=POST | top url',desc:"Muestra los destinos HTTP más utilizados con método POST (posible exfiltración)."},
+{cmd:'index=dns "type=A" | stats count by query | sort -count',desc:"Muestra las consultas DNS más frecuentes."},
+{cmd:'index=dns query=*base64* OR query=*dnscat*',desc:"Detecta intentos de tunneling DNS o exfiltración mediante subdominios codificados."},
+{cmd:'index=firewall action=blocked | stats count by src_ip, dest_ip',desc:"Muestra conexiones bloqueadas por el firewall."},
+{cmd:'index=sysmon EventCode=10 | table _time, SourceImage, TargetImage',desc:"Detecta inyecciones de código entre procesos (process hollowing, etc.)."},
+{cmd:'index=windows EventCode=7045 | table _time, Service_Name, Path',desc:"Detecta instalación de nuevos servicios persistentes."},
+{cmd:'index=sysmon EventCode=3 dest_port=445 OR dest_port=139 | stats count by src_ip, dest_ip',desc:"Detecta movimiento lateral mediante SMB."},
+{cmd:'index=wineventlog EventCode=4624 Logon_Type=3 | stats dc(src_ip) by user',desc:"Detecta conexiones RDP o de red sospechosas por usuario."},
+{cmd:'index=sysmon EventCode=1 process_name=powershell.exe | stats count by CommandLine',desc:"Identifica uso de PowerShell con posibles comandos peligrosos."},
+{cmd:'index=sysmon CommandLine=*Invoke-Mimikatz*',desc:"Detecta ejecución de Mimikatz u otras herramientas de robo de credenciales."},
+{cmd:'index=sysmon CommandLine="*EncodedCommand*" | table _time, CommandLine',desc:"Detecta comandos PowerShell codificados en base64."},
+{cmd:'index=wineventlog EventCode=1102 OR EventCode=104',desc:"Detecta limpieza de logs en Windows (posible ocultamiento de rastros)."},
+{cmd:'index=sysmon EventCode=1 process_name=wmic.exe | table _time, user, CommandLine',desc:"Detecta uso de WMIC para movimiento lateral o enumeración remota."},
+{cmd:'index=sysmon EventCode=3 dest_port=21 OR dest_port=22 | stats count by src_ip, dest_ip',desc:"Monitorea conexiones FTP o SSH inusuales (posible exfiltración)."},
+{cmd:'index=sysmon EventCode=3 dest_port=443 OR dest_port=80 | stats count by dest_ip, bytes_out',desc:"Muestra volumen de tráfico HTTP/HTTPS saliente por host."},
+{cmd:'index=sysmon EventCode=6 | stats count by driver_loaded',desc:"Detecta carga de drivers en el sistema, posible rootkit."},
+{cmd:'index=sysmon EventCode=1 process_name=cmd.exe parent_process_name=explorer.exe | stats count by user',desc:"Detecta apertura de CMD manual (usuario interactivo)."},
+{cmd:'index=wineventlog EventCode=4672 | stats count by user',desc:"Detecta privilegios administrativos especiales asignados a un usuario."},
+{cmd:'index=_internal | stats count by log_level',desc:"Monitoreo interno de Splunk: verifica mensajes de error o advertencia del sistema."},
+{cmd:'| rest /services/server/info | table splunk_server, version, uptime',desc:"Muestra información del servidor Splunk, versión y tiempo en línea."},
+{cmd:'| rest /services/licenser/usage | table label, used_bytes, pool_quota',desc:"Muestra el uso actual de licencias en Splunk."},
+{cmd:'| rest /services/authentication/users | table title, roles, realname',desc:"Lista usuarios y roles configurados en Splunk Enterprise."},
+{cmd:'| rest /services/data/indexes | table title, totalEventCount, currentDBSizeMB',desc:"Lista índices configurados y su tamaño actual."},
+{cmd:'| rest /services/server/status/peers | table peerName, status, bucket_count',desc:"Monitorea estado de nodos en entornos distribuidos (indexers)."}]},
+{cat:"Elastic / Kibana (KQL)",items:[
+{cmd:'event.code:4625',desc:"Filtra eventos Windows de inicio de sesión fallido."},
+{cmd:'process.name:cmd.exe AND user.name:administrator',desc:"Detecta ejecución del intérprete de comandos por el usuario administrador."},
+{cmd:'file.name:*mimikatz*',desc:"Detecta archivos o procesos con nombre sospechoso relacionado a Mimikatz."}]},
+{cat:"Wazuh",items:[
+{cmd:'/var/ossec/bin/agent_control -l',desc:"Lista todos los agentes conectados al servidor Wazuh."},
+{cmd:'/var/ossec/bin/ossec-logtest',desc:"Permite probar reglas manualmente con un log de ejemplo."}]},
+{cat:"Graylog",items:[
+{cmd:'source:"firewall" AND action:blocked',desc:"Muestra eventos de firewall donde la acción fue bloquear."},
+{cmd:'level:ERROR OR level:CRITICAL',desc:"Muestra eventos clasificados como errores o críticos."}]}
+];
+
+const nav=document.getElementById("nav");
+const content=document.getElementById("content");
+function render(){
+  DATA.forEach((s,i)=>{
+    const a=document.createElement("a");
+    a.href=`#sec-${i}`;a.textContent=s.cat;a.className="cat";
+    if(i===0)a.classList.add("active");
+    a.onclick=()=>{
+      document.querySelectorAll(".cat").forEach(x=>x.classList.remove("active"));
+      a.classList.add("active");
+    };
+    nav.appendChild(a);
+
+    const sec=document.createElement("section");sec.id=`sec-${i}`;
+    const h2=document.createElement("h2");h2.textContent=s.cat;sec.appendChild(h2);
+    s.items.forEach(it=>{
+      const card=document.createElement("div");card.className="card";
+      const cmd=document.createElement("div");cmd.className="cmd";cmd.textContent=it.cmd;
+      const btn=document.createElement("button");btn.className="btn";btn.textContent="Copiar";
+      btn.onclick=()=>{navigator.clipboard.writeText(it.cmd).then(()=>{btn.textContent="Copiado";setTimeout(()=>btn.textContent="Copiar",1200);});};
+      const desc=document.createElement("div");desc.className="desc";desc.textContent=it.desc;
+      card.append(cmd,btn,desc);sec.appendChild(card);
+    });
+    content.appendChild(sec);
+  });
+}
+render();
+
+document.getElementById("q").addEventListener("input",e=>{
+  const term=e.target.value.toLowerCase();
+  document.querySelectorAll("section").forEach(sec=>{
+    let visible=false;
+    sec.querySelectorAll(".card").forEach(card=>{
+      const match=card.textContent.toLowerCase().includes(term);
+      card.style.display=match?"flex":"none";
+      if(match)visible=true;
+    });
+    sec.style.display=visible||!term?"block":"none";
+  });
+});
+
+// Botón flotante "arriba"
+const topBtn=document.createElement("button");
+topBtn.id="topBtn";
+topBtn.textContent="⬆";
+topBtn.title="Volver arriba";
+topBtn.style.display="none";
+document.body.appendChild(topBtn);
+
+window.addEventListener("scroll",()=>{
+  topBtn.style.display=document.documentElement.scrollTop>400?"flex":"none";
+});
+topBtn.addEventListener("click",()=>{
+  window.scrollTo({top:0,behavior:"smooth"});
+});
+</script>
+</body>
+</html>

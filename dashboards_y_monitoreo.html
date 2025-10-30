@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboards y Monitoreo (SOC/NOC) — Manual SOC</title>
+<style>
+:root{
+  --bg:#0b1020;--panel:#121a33;--muted:#98a2b3;--text:#e6e8ef;--chip:#243056;--border:#1d2747;--card:#0f162b;
+}
+html{scroll-behavior:smooth}
+*{box-sizing:border-box}
+body{margin:0;background:linear-gradient(180deg,#0a0f21,#0b1126);color:var(--text);
+  font:14px/1.6 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,"Helvetica Neue",Arial;}
+header{position:sticky;top:0;z-index:100;background:rgba(11,17,38,.85);
+  border-bottom:1px solid var(--border);backdrop-filter:saturate(180%) blur(10px)}
+.wrap{max-width:1100px;margin:auto;padding:16px}
+h1{margin:8px 0 4px;font-size:22px}
+.subtitle{margin:0 0 12px;color:var(--muted)}
+.grid{display:grid;grid-template-columns:260px 1fr;gap:16px}
+@media(max-width:900px){.grid{grid-template-columns:1fr}nav{position:static;max-height:none}}
+nav{position:sticky;top:86px;align-self:start;background:var(--panel);border:1px solid var(--border);
+  border-radius:14px;padding:8px;max-height:calc(100vh - 110px);overflow:auto}
+.cat{display:block;padding:10px 12px;border-radius:10px;color:#cdd3ea;text-decoration:none;border:1px solid transparent}
+.cat:hover{background:var(--chip);border-color:#2a3864}
+main{display:grid;gap:16px}
+section{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:12px}
+section h2{margin:6px 6px 8px;font-size:17px;display:flex;justify-content:space-between;align-items:center}
+.label{font-size:12px;color:#a0aec0;border:1px solid #2a3864;background:#0f162b;padding:3px 8px;border-radius:8px;white-space:nowrap}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:6px}
+.cmd{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:#0e1a3a;border:1px solid #223464;border-radius:8px;padding:8px;color:#e6eeff;white-space:pre-wrap}
+.desc{color:#a0aec0;font-size:13px}
+.btn{align-self:flex-start;border:1px solid var(--border);background:var(--chip);color:#cdd8ff;padding:6px 10px;border-radius:8px;cursor:pointer;font-size:13px}
+.btn:hover{border-color:#32406f}
+.searchbar{margin-top:8px;margin-bottom:12px}
+input[type=search]{width:100%;padding:10px;border-radius:8px;border:1px solid var(--border);background:#0c1430;color:#e6e8ef}
+#topBtn{position:fixed;bottom:25px;right:25px;background:#243056;border:1px solid #32406f;color:#cdd8ff;
+  border-radius:50%;width:45px;height:45px;font-size:22px;cursor:pointer;display:none;align-items:center;justify-content:center;transition:0.3s}
+#topBtn:hover{background:#32406f}
+footer{color:var(--muted);text-align:center;padding:16px}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <h1>Dashboards y Monitoreo (SOC/NOC)</h1>
+  <p class="subtitle">Zabbix, Grafana, Prometheus y Splunk: paneles, queries, alertas y health checks listos para producción.</p>
+  <div class="searchbar"><input id="q" type="search" placeholder="Buscar panel, alerta o comando..."></div>
+</div></header>
+
+<div class="wrap grid">
+  <nav>
+    <a class="cat" href="#intro">Introducción al Monitoreo Centralizado</a>
+    <a class="cat" href="#metricas">Métricas y Logs Clave</a>
+    <a class="cat" href="#grafana">Dashboards en Grafana</a>
+    <a class="cat" href="#prometheus">Integración con Prometheus</a>
+    <a class="cat" href="#splunk">Integración con Splunk (Logs)</a>
+    <a class="cat" href="#alertas">Alertas y Notificaciones</a>
+    <a class="cat" href="#scripts">Scripts de Verificación y Mantenimiento</a>
+  </nav>
+
+  <main id="content">
+    <!-- Intro -->
+    <section id="intro">
+      <h2>Introducción al Monitoreo Centralizado <span class="label">Comandos & Config</span></h2>
+      <div class="cards">
+        <div class="card">
+          <div class="cmd"># Instalar Node Exporter (Linux) para métricas de sistema
+useradd --no-create-home --shell /usr/sbin/nologin node_exporter
+wget https://github.com/prometheus/node_exporter/releases/download/v1.8.1/node_exporter-1.8.1.linux-amd64.tar.gz -O - | tar xz
+cp node_exporter-*/node_exporter /usr/local/bin/
+cat >/etc/systemd/system/node_exporter.service <<'UNIT'
+[Unit]
+Description=Node Exporter
+After=network.target
+
+[Service]
+User=node_exporter
+ExecStart=/usr/local/bin/node_exporter
+Restart=always
+
+[Install]
+WantedBy=default.target
+UNIT
+systemctl daemon-reload && systemctl enable --now node_exporter</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Exposición de métricas en :9100 para Grafana/Prometheus.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Instalar Zabbix Agent (Debian/Ubuntu)
+apt update && apt -y install zabbix-agent
+sed -i 's/^Server=.*/Server=10.0.0.10/' /etc/zabbix/zabbix_agentd.conf
+sed -i 's/^Hostname=.*/Hostname=$(hostname)/' /etc/zabbix/zabbix_agentd.conf
+systemctl enable --now zabbix-agent</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Prepara el host para ser monitoreado por Zabbix Server.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Métricas -->
+    <section id="metricas">
+      <h2>Métricas y Logs Clave <span class="label">Consultas & Recolección</span></h2>
+      <div class="cards">
+        <div class="card">
+          <div class="cmd"># Prometheus query: CPU alta por host (PromQL)
+100 - (avg by (instance)(rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Uso de CPU (%) por instancia en los últimos 5 minutos.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Prometheus: uso de disco %
+(node_filesystem_size_bytes{fstype!~"tmpfs|overlay"} - node_filesystem_free_bytes{fstype!~"tmpfs|overlay"}) / node_filesystem_size_bytes{fstype!~"tmpfs|overlay"} * 100</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Porcentaje de uso de filesystem.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Splunk: errores de sistema más frecuentes
+index=syslog (level=err OR severity>=3) | stats count by host, process | sort - count</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Top procesos con errores para priorizar remediación.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Splunk: latencia promedio por endpoint (Nginx/Apache)
+index=web sourcetype=access_combined | stats avg(time_taken) as ms by uri | sort - ms</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Identifica endpoints lentos en tus servicios web.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Grafana -->
+    <section id="grafana">
+      <h2>Dashboards en Grafana <span class="label">Queries & Paneles</span></h2>
+      <div class="cards">
+        <div class="card">
+          <div class="cmd"># Crear datasource Prometheus por API
+curl -s -H "Authorization: Bearer &lt;GRAFANA_TOKEN&gt;" -H "Content-Type: application/json" \
+ -d '{"name":"Prometheus","type":"prometheus","url":"http://prometheus.local:9090","access":"proxy","isDefault":true}' \
+ http://grafana.local/api/datasources</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Registra Prometheus como origen de datos en Grafana.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Importar dashboard JSON
+curl -s -H "Authorization: Bearer &lt;GRAFANA_TOKEN&gt;" -H "Content-Type: application/json" \
+ -d @dashboard.json http://grafana.local/api/dashboards/db</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Carga dashboards desde archivos versionados.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Crear alerta (Grafana 9+) por API (ejemplo simplificado)
+curl -s -H "Authorization: Bearer &lt;GRAFANA_TOKEN&gt;" -H "Content-Type: application/json" \
+ -d @rule_group.json http://grafana.local/api/ruler/grafana/api/v1/rules/mygroup</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Publica un grupo de reglas de alerta en Grafana.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Prometheus -->
+    <section id="prometheus">
+      <h2>Integración con Prometheus <span class="label">Scrape & Alertas</span></h2>
+      <div class="cards">
+        <div class="card">
+          <div class="cmd"># prometheus.yml (añadir job para node_exporter)
+cat >>/etc/prometheus/prometheus.yml <<'YML'
+scrape_configs:
+  - job_name: 'node_exporter'
+    static_configs:
+      - targets: ['server1:9100','server2:9100']
+YML
+systemctl restart prometheus</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Configura targets para recolectar métricas.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Alertmanager: regla de alerta por disco &gt; 90%
+cat >/etc/prometheus/alerts.yml <<'YML'
+groups:
+- name: infra
+  rules:
+  - alert: DiskHighUsage
+    expr: (node_filesystem_size_bytes - node_filesystem_free_bytes) / node_filesystem_size_bytes * 100 &gt; 90
+    for: 10m
+    labels:
+      severity: warning
+    annotations:
+      summary: "FS alto uso"
+      description: "Partición con &gt; 90% de uso por 10m"
+YML
+sed -i 's@rule_files:.*@rule_files:\n  - /etc/prometheus/alerts.yml@' /etc/prometheus/prometheus.yml
+systemctl restart prometheus</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Crea una alerta y la incluye en la config de Prometheus.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Alertmanager: enviar a Slack
+cat >/etc/alertmanager/alertmanager.yml <<'YML'
+route:
+  receiver: slack
+receivers:
+- name: slack
+  slack_configs:
+  - api_url: https://hooks.slack.com/services/XXX/YYY/ZZZ
+    channel: "#soc-alertas"
+YML
+systemctl restart alertmanager</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Notificaciones de alertas a un canal Slack.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Splunk -->
+    <section id="splunk">
+      <h2>Integración con Splunk (Logs) <span class="label">HEC & SPL</span></h2>
+      <div class="cards">
+        <div class="card">
+          <div class="cmd"># Enviar logs a Splunk HEC
+curl -s -H "Authorization: Splunk &lt;TOKEN&gt;" -H "Content-Type: application/json" \
+ -d '{"event":{"app":"web","msg":"hola splunk","level":"info"}}' https://splunk.local:8088/services/collector</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Prueba de ingesta por HTTP Event Collector (HEC).</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># SPL: errores por servicio en 1h
+index=apps sourcetype=app:json level=error earliest=-1h | stats count by service | sort - count</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Resumen de errores reciente por microservicio.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># SPL: disponibilidad
+index=uptime sourcetype=ping status=down | timechart count by host</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Histórico de caídas por host monitorizado.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Alertas -->
+    <section id="alertas">
+      <h2>Alertas y Notificaciones <span class="label">Email / Slack / Telegram</span></h2>
+      <div class="cards">
+        <div class="card">
+          <div class="cmd"># Correo con ssmtp/msmtp (ejemplo)
+echo -e "Subject: Alerta CPU alta\n\nCPU&gt;90% en server1" | sendmail soc@empresa.com</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Notificación por email desde scripts/shell.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Slack webhook
+curl -X POST -H "Content-type: application/json" --data '{"text":"CPU&gt;90% en server1"}' https://hooks.slack.com/services/XXX/YYY/ZZZ</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Avisos operativos al canal del SOC.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Telegram bot
+curl -s "https://api.telegram.org/bot&lt;BOT_TOKEN&gt;/sendMessage" --data "chat_id=&lt;CHAT_ID&gt;&text=Alerta: CPU&gt;90%"</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Envío rápido de alertas a Telegram.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Scripts -->
+    <section id="scripts">
+      <h2>Scripts de Verificación y Mantenimiento <span class="label">Health Checks</span></h2>
+      <div class="cards">
+        <div class="card">
+          <div class="cmd"># Health check de servicios críticos
+cat >/usr/local/bin/health_check.sh <<'SH'
+#!/usr/bin/env bash
+SERVICIOS=("prometheus" "alertmanager" "grafana-server" "zabbix-agent")
+for s in "${SERVICIOS[@]}"; do
+  systemctl is-active --quiet "$s" || echo "$(date -Is) $s DOWN" | tee -a /var/log/health_check.log
+done
+SH
+chmod +x /usr/local/bin/health_check.sh && (crontab -l; echo "*/5 * * * * /usr/local/bin/health_check.sh") | crontab -</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Verifica cada 5 minutos y registra caídas.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Limpieza programada de logs (logrotate simple)
+cat >/etc/logrotate.d/infra <<'ROT'
+/var/log/health_check.log {
+  weekly
+  rotate 12
+  compress
+  missingok
+  notifempty
+}
+ROT</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Evita crecimiento descontrolado de logs.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Exportar dashboards de Grafana (backup)
+curl -s -H "Authorization: Bearer &lt;GRAFANA_TOKEN&gt;" http://grafana.local/api/search?query= | jq -r '.[].uid' | while read uid; do curl -s -H "Authorization: Bearer &lt;GRAFANA_TOKEN&gt;" http://grafana.local/api/dashboards/uid/$uid | jq '.dashboard' > "dash_$uid.json"; done</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Respaldos versionables de dashboards.</div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<footer>Manual SOC — Dashboards y Monitoreo (SOC/NOC)</footer>
+<button id="topBtn" title="Volver arriba">⬆</button>
+
+<script>
+// Copiar: concatena todos los bloques .cmd de la tarjeta (si hay varios)
+document.querySelectorAll('.card .btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const cmds = Array.from(btn.parentElement.querySelectorAll('.cmd')).map(d=>d.innerText).join('\n');
+    navigator.clipboard.writeText(cmds).then(() => {
+      const prev = btn.textContent; btn.textContent = 'Copiado';
+      setTimeout(() => btn.textContent = prev, 1200);
+    });
+  });
+});
+// Búsqueda
+document.getElementById('q').addEventListener('input', e => {
+  const term = e.target.value.toLowerCase();
+  document.querySelectorAll('main section').forEach(sec => {
+    let any=false;
+    sec.querySelectorAll('.card').forEach(card => {
+      const hit = card.textContent.toLowerCase().includes(term);
+      card.style.display = hit ? 'flex' : 'none';
+      if (hit) any = true;
+    });
+    sec.style.display = (any || !term) ? 'block' : 'none';
+  });
+});
+// Botón arriba
+const topBtn = document.getElementById('topBtn');
+window.addEventListener('scroll', () => {
+  topBtn.style.display = (document.documentElement.scrollTop > 400) ? 'flex' : 'none';
+});
+topBtn.addEventListener('click', () => {
+  window.scrollTo({top: 0, behavior: 'smooth'});
+});
+</script>
+</body>
+</html>

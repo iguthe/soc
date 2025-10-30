@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Comandos Linux (Kali) — Guía por categorías</title>
+  <style>
+    :root{
+      --bg:#0b1020; --panel:#121a33; --muted:#98a2b3; --text:#e6e8ef; --brand:#7c9bff; --chip:#243056; --accent:#65f0b6;
+      --card:#0f162b; --border:#1d2747; --warn:#ffce6a;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:linear-gradient(180deg,#0a0f21, #0b1126);color:var(--text);font:14px/1.6 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji"}
+    header{position:sticky;top:0;z-index:1000;background:rgba(11,17,38,.85);backdrop-filter:saturate(180%) blur(10px);border-bottom:1px solid var(--border)}
+    .wrap{max-width:1200px;margin:auto;padding:16px}
+    h1{margin:8px 0 4px;font-size:22px;letter-spacing:.3px}
+    .subtitle{margin:0 0 12px;color:var(--muted)}
+    .bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+    .search{flex:1;display:flex;gap:8px}
+    input[type="search"]{flex:1;padding:12px 14px;border-radius:10px;border:1px solid var(--border);background:#0c1430;color:var(--text)}
+    .btn{appearance:none;border:1px solid var(--border);background:var(--chip);color:#cdd8ff;padding:10px 12px;border-radius:10px;cursor:pointer}
+    .btn:hover{border-color:#32406f}
+    .grid{display:grid;grid-template-columns:280px 1fr;gap:16px}
+    nav{position:sticky;top:86px;align-self:start;background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:8px;max-height:calc(100vh - 110px);overflow:auto}
+    .cat{display:block;padding:10px 12px;border-radius:10px;color:#cdd3ea;text-decoration:none;border:1px solid transparent}
+    .cat.active,.cat:focus,.cat:hover{background:var(--chip);border-color:#2a3864}
+    main{display:grid;gap:16px}
+    section{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:12px}
+    section h2{margin:6px 6px 8px;font-size:18px}
+    .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:8px}
+    .cmd{display:flex;gap:8px;align-items:center}
+    .cmd code{background:#0b142e;border:1px solid #22305a;color:#e7edff;padding:6px 8px;border-radius:8px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px}
+    .chip{margin-left:auto;font-size:11px;padding:4px 8px;border-radius:999px;background:#0e1a3a;border:1px solid #243364;color:#b4c3ff}
+    .desc{color:#c7ccdd;font-size:13px}
+    .tools{display:flex;gap:8px}
+    .tiny{font-size:12px;color:var(--muted)}
+    footer{color:var(--muted);text-align:center;padding:18px}
+    .hidden{display:none}
+    .kbd{font:11px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;background:#0e1a3a;border:1px solid #223464;border-radius:6px;padding:2px 6px}
+    .tag{display:inline-block;margin:0 6px 6px 0;padding:6px 8px;border:1px solid var(--border);border-radius:999px;background:#0e1834;color:#cdd8ff}
+    .note{background:#0e1a3a;border:1px dashed #2b3f7d;border-radius:12px;padding:10px;color:#cfe2ff}
+    .warn{color:var(--warn)}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <h1>Comandos Linux (Kali) — Guía por funciones</h1>
+      <p class="subtitle">Filtra, navega por categorías y copia comandos al portapapeles. Datos base: lista de 100 comandos útiles en Kali.
+        <span class="tiny">(Incluye utilidades de archivos, red, seguridad, paquetes, procesos, logs, discos, etc.)</span>
+      </p>
+      <div class="bar">
+        <div class="search">
+          <input id="q" type="search" placeholder="Buscar comando o descripción (ej: 'carpetas', 'mover', 'puertos', 'wifi', 'sqlmap')" />
+          <button class="btn" id="clearBtn" title="Limpiar búsqueda">Limpiar</button>
+        </div>
+        <button class="btn" id="expandAll">Expandir todo</button>
+        <button class="btn" id="collapseAll">Colapsar todo</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="wrap grid">
+    <nav id="nav"></nav>
+    <main id="content"></main>
+  </div>
+
+  <footer>
+    Hecho para organizar tu referencia de Kali por funciones. Consejo: pulsa <span class="kbd">/</span> para enfocar la búsqueda. — <span class="tiny">Exporta con Ctrl+S</span>
+  </footer>
+
+<script>
+// ————————————————————————————————
+// 1) Fuente: texto del cuaderno de comandos (pegado aquí)
+// ————————————————————————————————
+const raw = `
+██████╗  ██████╗  █████╗ ███╗   ███╗███████╗ ██████╗  █████╗ ███╗   ██╗\n██╔════╝ ██╔═══██╗██╔══██╗████╗ ████║██╔════╝██╔════╝ ██╔══██╗████╗  ██║\n██║  ███╗██║   ██║███████║██╔████╔██║█████╗  ██║  ███╗███████║██╔██╗ ██║\n██║   ██║██║   ██║██╔══██║██║╚██╔╝██║██╔══╝  ██║   ██║██╔══██║██║╚██╗██║\n╚██████╔╝╚██████╔╝██║  ██║██║ ╚═╝ ██║███████╗╚██████╔╝██║  ██║██║ ╚████║\n ╚═════╝  ╚═════╝ ╚═╝  ╚═╝╚═╝     ╚═╝╚══════╝ ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═══╝\n\nCOMANDOS KALI\n\n1. **ls**\nMuestra los archivos y directorios del directorio actual. Útil para listar el contenido y verificar permisos.\n\n2. **cd <directorio>**\nCambia el directorio de trabajo actual. Usa rutas relativas o absolutas para moverte en el sistema de archivos.\n\n3. **pwd**\nImprime la ruta completa del directorio actual. Sirve para confirmar en qué carpeta estás trabajando.\n\n4. **clear**\nLimpia la pantalla de la terminal. Ideal para mantener la consola ordenada.\n\n5. **mkdir <nombre>**\nCrea un nuevo directorio con el nombre indicado. Útil para organizar proyectos o guardar resultados.\n\n6. **rmdir <directorio>**\nElimina un directorio vacío. No borra directorios que contengan archivos.\n\n7. **rm -rf <ruta>**\nElimina archivos y directorios de forma recursiva y forzada. Utilizar con precaución, ya que no solicita confirmación.\n\n8. **cp <origen> <destino>**\nCopia archivos o directorios de una ubicación a otra. Conserva el archivo original en la ruta de origen.\n\n9. **mv <origen> <destino>**\nMueve o renombra archivos y carpetas. Es equivalente a cortar y pegar en el sistema de archivos.\n\n10. **cat <archivo>**\nMuestra el contenido de un archivo en la salida estándar. Útil para revisar configuraciones y logs pequeños.\n\n11. **nano <archivo>**\nEditor de texto en terminal, simple y directo. Ideal para editar rápidamente archivos de configuración.\n\n12. **gedit <archivo>**\nEditor gráfico para entornos de escritorio. Más cómodo para edición extensa si se dispone de GUI.\n\n13. **touch <archivo>**\nCrea un archivo vacío o actualiza la marca de tiempo de un archivo existente. Útil para iniciar scripts o placeholders.\n\n14. **locate <patrón>**\nBusca archivos por nombre usando una base de datos indexada. Muy rápido para encontrar archivos conocidos.\n\n15. **find <ruta> -name <patrón>**\nBusca archivos en tiempo real con filtros (nombre, tamaño, fecha). Más flexible y potente que locate.\n\n16. **history**\nMuestra el historial de comandos ejecutados en la shell actual. Útil para recuperar comandos anteriores.\n\n17. **whoami**\nIndica el usuario con el que se está ejecutando la sesión. Permite comprobar privilegios actuales.\n\n18. **id <usuario>**\nMuestra el UID, GID y grupos de un usuario. Sirve para verificar pertenencia a grupos y permisos.\n\n19. **ifconfig**\nMuestra y permite configurar interfaces de red (herramienta clásica). Aún útil en muchos scripts y sistemas.\n\n20. **ip addr show (ip a)**\nComando moderno para ver interfaces y direcciones IP. Proporciona información más detallada que ifconfig.\n\n21. **ping <host>**\nEnviar paquetes ICMP para comprobar conectividad con un host. Permite medir latencia y disponibilidad.\n\n22. **traceroute <host>**\nMuestra la ruta que siguen los paquetes hacia un destino. Ayuda a identificar saltos y posibles problemas de red.\n\n23. **netstat -tuln**\nLista puertos abiertos y servicios en escucha. Permite auditar conexiones TCP/UDP activas.\n\n24. **ss -tuln**\nAlternativa moderna a netstat para listar sockets. Es más rápida y ofrece más opciones.\n\n25. **curl <URL>**\nRealiza peticiones HTTP/HTTPS desde la terminal. Muy útil para probar APIs y descargar cabeceras.\n\n26. **wget <URL>**\nDescarga archivos desde la web de forma no interactiva. Soporta reanudación y descarga en segundo plano.\n\n27. **scp <origen> <destino>**\nCopia archivos entre máquinas usando SSH. Es seguro y práctico para transferencias puntuales.\n\n28. **ssh <usuario@host>**\nInicia una sesión remota segura mediante SSH. Es la forma estándar para administración remota.\n\n29. **ftp <host>**\nCliente FTP para transferencias con servidores que usan este protocolo. Menos seguro que SCP/SSH, pero aún vigente.\n\n30. **nmap <objetivo>**\nEscáner de puertos y servicios en red muy potente. Fundamental para reconocimiento en pruebas de seguridad.\n\n31. **nc (netcat) <opciones>**\nHerramienta versátil para conexiones TCP/UDP, transferencia de archivos y debugging. Esencial para tareas de red y debugging.\n\n32. **msfconsole**\nInterfaz principal de Metasploit Framework para explotar vulnerabilidades. Central en pruebas de penetración avanzadas.\n\n33. **airmon-ng**\nActiva y administra interfaces Wi‑Fi en modo monitor. Requisito previo para otras herramientas de auditoría inalámbrica.\n\n34. **airodump-ng**\nCaptura tráfico inalámbrico y muestra redes/estaciones. Utilizado para reconocimiento y capturas de handshakes.\n\n35. **aireplay-ng**\nInyecta paquetes en redes Wi‑Fi para pruebas como desautenticación. Útil para forzar reautenticaciones.\n\n36. **aircrack-ng**\nHerramienta para descifrar contraseñas WEP/WPA a partir de capturas. Emplea ataques de diccionario y estadísticas.\n\n37. **arp-scan <red>**\nEscanea la LAN en busca de dispositivos usando ARP. Rápido para mapear hosts activos en la red local.\n\n38. **ettercap -T -M arp**\nEjecuta ataques Man-in-the-Middle y sniffing a nivel de red. Útil para analizar tráfico entre hosts.\n\n39. **wireshark**\nAnalizador gráfico de paquetes para inspección profunda de tráfico. Permite filtrar y reconstruir sesiones completas.\n\n40. **tcpdump -i <if> -w <file.pcap>**\nCaptura paquetes desde la terminal y puede guardarlos en pcap. Ideal para análisis forense de red.\n\n41. **hydra -l <user> -P <passlist> <service://host>**\nRealiza ataques de fuerza bruta a servicios de autenticación. Potente para evaluar robustez de contraseñas.\n\n42. **john <hashfile>**\nJohn the Ripper para crackear hashes de contraseñas. Admite múltiples formatos y modos de ataque.\n\n43. **hashcat -m <mode> <hashfile> <wordlist>**\nCracker de contraseñas acelerado por GPU. Muy eficiente para grandes conjuntos de hashes.\n\n44. **gobuster dir -u <url> -w <wordlist>**\nBusca directorios y archivos ocultos en servidores web. Útil para descubrir puntos de entrada no documentados.\n\n45. **dirb <url> <wordlist>**\nEscáner simple de directorios web. Complemento práctico para enumeración de contenidos.\n\n46. **sqlmap -u <url> --batch**\nAutomatiza pruebas de inyección SQL y extracción de datos. Facilita evaluar vulnerabilidades en aplicaciones web.\n\n47. **nikto -h <host>**\nEscáner de vulnerabilidades web que revisa configuraciones y scripts comunes. Proporciona un inventario rápido de fallos.\n\n48. **burpsuite**\nProxy/interceptor para pruebas de seguridad web con interfaz gráfica. Ideal para modificar y analizar peticiones HTTP.\n\n49. **curl -I <url>**\nSolicita solamente las cabeceras HTTP de una URL. Permite conocer servidor, redirecciones y políticas.\n\n50. **dig <dominio>**\nHerramienta de consulta DNS para inspeccionar registros. Útil para investigar delegaciones y registros DNS.\n\n51. **apt update**\nActualiza la lista de paquetes disponibles en los repositorios. Paso previo recomendado antes de instalar paquetes.\n\n52. **apt upgrade**\nActualiza los paquetes instalados a versiones más recientes. Mantiene el sistema con parches y mejoras.\n\n53. **apt install <paquete>**\nInstala el paquete indicado desde los repositorios. Requiere privilegios de superusuario.\n\n54. **dpkg -i <archivo.deb>**\nInstala un paquete .deb localmente. Útil para paquetes fuera de los repositorios.\n\n55. **systemctl status <servicio>**\nConsulta el estado de un servicio gestionado por systemd. Muestra logs recientes y estado actual.\n\n56. **systemctl start/stop/restart <servicio>**\nInicia, detiene o reinicia servicios systemd. Comando básico para administrar demonios en el sistema.\n\n57. **service <servicio> start/stop**\nInterfaz tradicional para gestionar servicios. Compatibilidad con sistemas que aún usan init scripts.\n\n58. **sudo <comando>**\nEjecuta un comando con privilegios de superusuario. Indispensable para tareas administrativas.\n\n59. **chmod <permisos> <archivo>**\nCambia los permisos (lectura/escritura/ejecución) de archivos o directorios. Controla el acceso al recurso.\n\n60. **chown <usuario:grupo> <archivo>**\nCambia el propietario y grupo de un archivo o directorio. Necesario para ajustar permisos y responsabilidad.\n\n61. **passwd <usuario>**\nCambia la contraseña del usuario indicado. Herramienta esencial para administración de cuentas.\n\n62. **who**\nLista los usuarios actualmente conectados al sistema. Útil para monitorizar actividad en máquinas compartidas.\n\n63. **last**\nMuestra los inicios de sesión recientes en el sistema. Buen recurso para auditoría básica de accesos.\n\n64. **journalctl -u <servicio>**\nMuestra el registro (logs) de systemd para un servicio. Ayuda a diagnosticar fallos específicos del servicio.\n\n65. **dmesg**\nMuestra mensajes del kernel registrados en el arranque y durante la operación. Útil para diagnosticar problemas de hardware.\n\n66. **uname -a**\nMuestra información del kernel y arquitectura del sistema. Rápido para conocer la versión de Linux en uso.\n\n67. **lsb_release -a**\nMuestra información de la distribución (nombre y versión). Recomendable para documentar entornos.\n\n68. **top**\nMonitor en tiempo real de procesos y uso de recursos. Permite identificar procesos que consumen CPU o memoria.\n\n69. **htop**\nVersión mejorada de top con interfaz interactiva. Facilita ordenar y gestionar procesos desde la terminal.\n\n70. **ps aux**\nLista procesos en ejecución con detalles de usuario, CPU y memoria. Útil para búsquedas y análisis estático.\n\n71. **kill <PID>**\nEnvía la señal SIGTERM al proceso indicado para solicitar su finalización. Usar cuando un proceso debe cerrarse ordenadamente.\n\n72. **killall <nombre_proceso>**\nEnvía señales a todos los procesos que coinciden con un nombre. Rápido para detener múltiples instancias.\n\n73. **pkill <patrón>**\nEnvía señales a procesos que coincidan con un patrón. Flexible para seleccionar procesos por expresión.\n\n74. **crontab -e**\nEdita el crontab del usuario para programar tareas periódicas. Permite automatizar tareas de mantenimiento.\n\n75. **rsync -avz <origen> <destino>**\nSincroniza archivos y directorios de forma eficiente y segura. Soporta reanudación y solo copia diferencias.\n\n76. **tar -czvf <archivo.tar.gz> <carpeta>**\nCrea un archivo comprimido en formato tar.gz. Útil para empaquetar proyectos o backups.\n\n77. **tar -xzvf <archivo.tar.gz>**\nExtrae el contenido de un tar.gz. Recupera archivos empaquetados previamente.\n\n78. **gzip <archivo> / gunzip <archivo.gz>**\nComprime o descomprime archivos con gzip. A menudo se usa junto a tar para empaquetado.\n\n79. **zip / unzip**\nCrear y extraer archivos ZIP. Compatibilidad común con sistemas Windows y utilidades modernas.\n\n80. **file <archivo>**\nDetecta el tipo de archivo analizando su contenido. Útil para identificar formatos no evidentes.\n\n81. **strings <archivo>**\nExtrae cadenas legibles de archivos binarios. Útil para buscar información incrustada en ejecutables.\n\n82. **whois <dominio>**\nConsulta información de registro de dominios. Permite obtener propietario, fechas y servidores DNS.\n\n83. **openssl s_client -connect <host:puerto>**\nEstablece una conexión TLS/SSL manual para inspeccionar certificados. Útil para diagnosticar problemas HTTPS.\n\n84. **openssl genrsa -out key.pem 2048**\nGenera una clave privada RSA de 2048 bits. Base para crear certificados y conexiones seguras.\n\n85. **openssl req -new -x509 -key key.pem -out cert.pem -days 365**\nCrea un certificado autofirmado usando una clave privada. Útil para pruebas locales y desarrollo.\n\n86. **nc -lvnp <puerto>**\nAbre un listener TCP en el puerto indicado con netcat. Frecuente en pruebas de conectividad y transferencias simples.\n\n87. **openssl passwd -1 <contraseña>**\nGenera un hash MD5 para contraseñas compatible con /etc/shadow. Empleado en pruebas y migraciones.\n\n88. **awk <programa> <archivo>**\nHerramienta de procesamiento de texto y extracción de columnas. Potente para parsing y generación de reportes.\n\n89. **sed <expresión> <archivo>**\nEditor de flujo para transformar texto mediante expresiones regulares. Ideal para reemplazos masivos en scripts.\n\n90. **cut -d <delim> -f <fields> <archivo>**\nExtrae columnas delimitadas de texto. Sencillo y rápido para obtener campos concretos.\n\n91. **tee <archivo>**\nDuplica la salida estándar hacia pantalla y archivo simultáneamente. Útil para registrar salidas de comandos.\n\n92. **xargs <comando>**\nConstruye y ejecuta comandos a partir de entrada estándar. Permite encadenar operaciones de forma eficiente.\n\n93. **mount / umount <dispositivo> <punto_de_montaje>**\nMontar o desmontar sistemas de archivos en el árbol de directorios. Requerido para trabajar con dispositivos y particiones.\n\n94. **fdisk -l**\nLista particiones y discos conectados al sistema. Herramienta básica para gestión de discos.\n\n95. **mount -o loop <iso> <mnt>**\nMontar una imagen ISO en un directorio usando loopback. Práctico para inspeccionar o ejecutar instaladores.\n\n96. **chroot <nuevo_root>**\nCambia la raíz del sistema para ejecutar en un entorno aislado. Muy usado para recuperación y entornos de reparación.\n\n97. **openssl x509 -in cert.pem -text -noout**\nMuestra detalles legibles de un certificado X.509. Permite inspeccionar fechas y extensiones del certificado.\n\n98. **uptime**\nMuestra el tiempo que lleva en marcha el sistema y carga promedio. Buena métrica para evaluar estabilidad.\n\n99. **ncdu**\nAnalizador interactivo de uso de disco en terminal. Facilita localizar directorios que consumen espacio.\n\n100. **alias <nombre>='<comando>'**\nCrea alias temporales para comandos complejos o largos. Acelera el flujo de trabajo en la shell.\n`;
+
+// ————————————————————————————————
+// 2) Parseo del texto a objetos {cmd, desc}
+// ————————————————————————————————
+function parse(raw){
+  const lines = raw.split(/\r?\n/);
+  const items=[];
+  for(let i=0;i<lines.length;i++){
+    const m = lines[i].match(/^\s*\d+\. \*\*(.+?)\*\*/);
+    if(m){
+      const cmd = m[1]
+        .replaceAll('&lt;','<').replaceAll('&gt;','>')
+        .replaceAll('&amp;','&');
+      // Descripción = siguiente línea
+      let desc = (lines[i+1]||'').trim();
+      // Algunas entradas usan dos líneas. Si la siguiente es vacía, mira dos líneas más adelante
+      if(!desc && lines[i+2]) desc = lines[i+2].trim();
+      items.push({cmd, desc});
+    }
+  }
+  return items;
+}
+const all = parse(raw);
+
+// ————————————————————————————————
+// 3) Mapeo de categorías por función
+// ————————————————————————————————
+const CATS = {
+  'Carpetas y archivos': [
+    'ls','cd <directorio>','pwd','mkdir <nombre>','rmdir <directorio>','rm -rf <ruta>',
+    'cp <origen> <destino>','mv <origen> <destino>','touch <archivo>','cat <archivo>',
+    'locate <patrón>','find <ruta> -name <patrón>','file <archivo>','strings <archivo>'
+  ],
+  'Edición y texto': [
+    'nano <archivo>','gedit <archivo>','awk <programa> <archivo>','sed <expresión> <archivo>',
+    'cut -d <delim> -f <fields> <archivo>','tee <archivo>','xargs <comando>'
+  ],
+  'Permisos y usuarios': [
+    'whoami','id <usuario>','chmod <permisos> <archivo>','chown <usuario:grupo> <archivo>',
+    'passwd <usuario>'
+  ],
+  'Red — básico': [
+    'ifconfig','ip addr show (ip a)','ping <host>','traceroute <host>','netstat -tuln','ss -tuln','dig <dominio>','whois <dominio>'
+  ],
+  'Transferencia / Web': [
+    'curl <URL>','curl -I <url>','wget <URL>','ftp <host>','scp <origen> <destino>','ssh <usuario@host>','rsync -avz <origen> <destino>'
+  ],
+  'Seguridad / Pentesting': [
+    'nmap <objetivo>','nc (netcat) <opciones>','msfconsole','gobuster dir -u <url> -w <wordlist>',
+    'dirb <url> <wordlist>','sqlmap -u <url> --batch','nikto -h <host>','burpsuite',
+    'hydra -l <user> -P <passlist> <service://host>','john <hashfile>','hashcat -m <mode> <hashfile> <wordlist>',
+    'arp-scan <red>','ettercap -T -M arp','wireshark','tcpdump -i <if> -w <file.pcap>',
+    'airmon-ng','airodump-ng','aireplay-ng','aircrack-ng','nc -lvnp <puerto>'
+  ],
+  'Paquetes y servicios': [
+    'apt update','apt upgrade','apt install <paquete>','dpkg -i <archivo.deb>',
+    'systemctl status <servicio>','systemctl start/stop/restart <servicio>','service <servicio> start/stop','sudo <comando>'
+  ],
+  'Procesos y rendimiento': [
+    'top','htop','ps aux','kill <PID>','killall <nombre_proceso>','pkill <patrón>','uptime','history',
+  ],
+  'Logs y auditoría': [
+    'journalctl -u <servicio>','dmesg','who','last','uname -a','lsb_release -a'
+  ],
+  'Compresión y backups': [
+    'tar -czvf <archivo.tar.gz> <carpeta>','tar -xzvf <archivo.tar.gz>','gzip <archivo> / gunzip <archivo.gz>','zip / unzip','alias <nombre>\'=\'<comando>\''
+  ],
+  'Discos y montaje': [
+    'mount / umount <dispositivo> <punto_de_montaje>','fdisk -l','mount -o loop <iso> <mnt>','chroot <nuevo_root>','ncdu'
+  ],
+  'TLS/Certificados (OpenSSL)': [
+    'openssl s_client -connect <host:puerto>','openssl genrsa -out key.pem 2048',
+    'openssl req -new -x509 -key key.pem -out cert.pem -days 365','openssl passwd -1 <contraseña>','openssl x509 -in cert.pem -text -noout'
+  ]
+};
+
+// ————————————————————————————————
+// 4) Construcción del DOM
+// ————————————————————————————————
+const content = document.getElementById('content');
+const nav = document.getElementById('nav');
+const q = document.getElementById('q');
+const clearBtn = document.getElementById('clearBtn');
+
+function findItemByCmd(name){
+  // Los comandos en "all" pueden tener variantes; hacemos match relajado
+  const norm = s=>s.replaceAll(/\s+/g,' ').trim().toLowerCase();
+  const n = norm(name);
+  return all.find(x=> norm(x.cmd)===n) || all.find(x=> norm(x.cmd).startsWith(n.split(' (')[0]));
+}
+
+function makeCard(item, cat){
+  const el = document.createElement('div');
+  el.className='card';
+  const title = document.createElement('div');
+  title.className='cmd';
+  const code = document.createElement('code');
+  code.textContent = item?.cmd || '—';
+  const chip = document.createElement('span'); chip.className='chip'; chip.textContent = cat;
+  const copy = document.createElement('button'); copy.className='btn'; copy.textContent='Copiar'; copy.style.marginLeft='auto';
+  copy.onclick=()=>{ navigator.clipboard.writeText(item?.cmd || '').then(()=>{ copy.textContent='Copiado'; setTimeout(()=>copy.textContent='Copiar',1200); }); };
+  title.append(code, copy);
+  const desc = document.createElement('div'); desc.className='desc'; desc.textContent = item?.desc || 'Sin descripción';
+  el.append(title, desc);
+  return el;
+}
+
+function render(){
+  // Nav
+  nav.innerHTML='';
+  const keys = Object.keys(CATS);
+  keys.forEach((k,i)=>{
+    const a = document.createElement('a');
+    a.href = `#sec-${i}`; a.textContent = k; a.className='cat'; if(i===0) a.classList.add('active');
+    a.onclick = (e)=>{
+      document.querySelectorAll('.cat').forEach(x=>x.classList.remove('active')); a.classList.add('active');
+    };
+    nav.appendChild(a);
+  });
+
+  // Sections
+  content.innerHTML='';
+  keys.forEach((k,i)=>{
+    const sec = document.createElement('section'); sec.id = `sec-${i}`;
+    const h2 = document.createElement('h2'); h2.textContent = k; sec.appendChild(h2);
+    const wrap = document.createElement('div'); wrap.className='cards';
+    CATS[k].forEach(cmdName=>{
+      const item = findItemByCmd(cmdName);
+      wrap.appendChild(makeCard(item||{cmd:cmdName,desc:''}, k));
+    });
+    sec.appendChild(wrap);
+    content.appendChild(sec);
+  });
+}
+render();
+
+// ————————————————————————————————
+// 5) Búsqueda
+// ————————————————————————————————
+function doSearch(){
+  const term = q.value.trim().toLowerCase();
+  const sections = Array.from(document.querySelectorAll('main section'));
+  if(!term){ sections.forEach(s=>s.classList.remove('hidden')); document.querySelectorAll('.card').forEach(c=>c.style.display=''); return; }
+  sections.forEach(sec=>{
+    let matches = 0;
+    sec.querySelectorAll('.card').forEach(card=>{
+      const code = card.querySelector('code').textContent.toLowerCase();
+      const desc = card.querySelector('.desc').textContent.toLowerCase();
+      const ok = code.includes(term) || desc.includes(term);
+      card.style.display = ok ? '' : 'none';
+      if(ok) matches++;
+    });
+    sec.classList.toggle('hidden', matches===0);
+  });
+}
+q.addEventListener('input', doSearch);
+clearBtn.onclick = ()=>{ q.value=''; doSearch(); q.focus(); };
+window.addEventListener('keydown', (e)=>{ if(e.key==='/' && document.activeElement!==q){ e.preventDefault(); q.focus(); }});
+
+// ————————————————————————————————
+// 6) Expandir/Colapsar (mostrar/ocultar secciones sin resultados ya está manejado)
+// ————————————————————————————————
+const expandAll = document.getElementById('expandAll');
+const collapseAll = document.getElementById('collapseAll');
+expandAll.onclick = ()=>{ document.querySelectorAll('main section').forEach(s=>s.classList.remove('hidden')); };
+collapseAll.onclick = ()=>{ document.querySelectorAll('main section').forEach(s=>s.classList.add('hidden')); };
+</script>
+</body>
+</html>

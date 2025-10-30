@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Playbooks y Automatización (SOAR) — Manual SOC</title>
+<style>
+:root{
+  --bg:#0b1020;--panel:#121a33;--muted:#98a2b3;--text:#e6e8ef;--chip:#243056;--border:#1d2747;--card:#0f162b;
+}
+html{scroll-behavior:smooth}
+*{box-sizing:border-box}
+body{margin:0;background:linear-gradient(180deg,#0a0f21,#0b1126);color:var(--text);
+  font:14px/1.6 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,"Helvetica Neue",Arial;}
+header{position:sticky;top:0;z-index:100;background:rgba(11,17,38,.85);
+  border-bottom:1px solid var(--border);backdrop-filter:saturate(180%) blur(10px)}
+.wrap{max-width:1100px;margin:auto;padding:16px}
+h1{margin:8px 0 4px;font-size:22px}
+.subtitle{margin:0 0 12px;color:var(--muted)}
+.grid{display:grid;grid-template-columns:260px 1fr;gap:16px}
+@media(max-width:900px){.grid{grid-template-columns:1fr}nav{position:static;max-height:none}}
+nav{position:sticky;top:86px;align-self:start;background:var(--panel);border:1px solid var(--border);
+  border-radius:14px;padding:8px;max-height:calc(100vh - 110px);overflow:auto}
+.cat{display:block;padding:10px 12px;border-radius:10px;color:#cdd3ea;text-decoration:none;border:1px solid transparent}
+.cat:hover{background:var(--chip);border-color:#2a3864}
+main{display:grid;gap:16px}
+section{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:12px}
+section h2{margin:6px 6px 8px;font-size:17px;display:flex;justify-content:space-between;align-items:center}
+.label{font-size:12px;color:#a0aec0;border:1px solid #2a3864;background:#0f162b;padding:3px 8px;border-radius:8px;white-space:nowrap}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:6px}
+.cmd{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:#0e1a3a;border:1px solid #223464;border-radius:8px;padding:8px;color:#e6eeff;white-space:pre-wrap}
+.desc{color:#a0aec0;font-size:13px}
+.btn{align-self:flex-start;border:1px solid var(--border);background:var(--chip);color:#cdd8ff;padding:6px 10px;border-radius:8px;cursor:pointer;font-size:13px}
+.btn:hover{border-color:#32406f}
+.searchbar{margin-top:8px;margin-bottom:12px}
+input[type=search]{width:100%;padding:10px;border-radius:8px;border:1px solid var(--border);background:#0c1430;color:#e6e8ef}
+#topBtn{position:fixed;bottom:25px;right:25px;background:#243056;border:1px solid #32406f;color:#cdd8ff;
+  border-radius:50%;width:45px;height:45px;font-size:22px;cursor:pointer;display:none;align-items:center;justify-content:center;transition:0.3s}
+#topBtn:hover{background:#32406f}
+footer{color:var(--muted);text-align:center;padding:16px}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <h1>Playbooks y Automatización (SOAR)</h1>
+  <p class="subtitle">Ejemplos prácticos con Splunk SOAR, TheHive, MISP, Ansible y APIs. Incluye scripts Python, cURL y webhooks.</p>
+  <div class="searchbar"><input id="q" type="search" placeholder="Buscar playbook o comando..."></div>
+</div></header>
+
+<div class="wrap grid">
+  <nav>
+    <a class="cat" href="#intro">Introducción y Flujo SOAR</a>
+    <a class="cat" href="#basicos">Playbooks Básicos (Bloqueo, Cuarentena, Ticketing)</a>
+    <a class="cat" href="#enriquecimiento">Playbooks de Enriquecimiento (VT/MISP/AbuseIPDB)</a>
+    <a class="cat" href="#python_api">Automatización con Python y API REST</a>
+    <a class="cat" href="#integraciones">Integración con TheHive / MISP / Splunk</a>
+    <a class="cat" href="#gestion">Gestión y Monitoreo de Playbooks</a>
+  </nav>
+
+  <main id="content">
+    <!-- Intro -->
+    <section id="intro">
+      <h2>Introducción y Flujo SOAR <span class="label">Comandos de Terminal</span></h2>
+      <div class="cards">
+        <div class="card">
+          <div class="cmd"># Flujo genérico: Trigger (alerta) -> Enriquecimiento -> Decisión -> Acción -> Documentación
+# Este archivo usa comandos de ejemplo y cURL/requests. Ajusta endpoints/tokens.
+echo "SOAR: trigger->enrich->decide->act->document" &gt;&gt; playbooks_notas.md</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Notas/plantilla para documentar el flujo de un playbook.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Webhook de entrada (ejemplo con netcat)
+while true; do nc -l -p 9000 &gt;&gt; /tmp/soar_events.json; done</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Ejemplo simple de receptor para pruebas locales de webhooks.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Disparar evento de prueba
+curl -s -X POST http://localhost:9000 -H "Content-Type: application/json" -d '{"event":"IOC","ip":"1.2.3.4"}'</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Envía un evento test al webhook local.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Básicos -->
+    <section id="basicos">
+      <h2>Playbooks Básicos (Bloqueo, Cuarentena, Ticketing) <span class="label">Comandos de Terminal</span></h2>
+      <div class="cards">
+        <div class="card">
+          <div class="cmd"># Bloqueo de IP en firewall Linux (iptables)
+iptables -I INPUT -s 1.2.3.4 -j DROP</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Acción de contención inmediata ante IOC.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Cuarentena de host por Ansible
+ansible compromised -m shell -a 'nmcli dev disconnect eth0' -b</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Aísla host(s) usando Ansible sobre un grupo inventariado.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Ticket en TheHive (caso)
+curl -s -H "Authorization: Bearer &lt;HIVE_TOKEN&gt;" -H "Content-Type: application/json" \
+ -d '{"title":"IOC 1.2.3.4 bloqueada","severity":2,"tlp":2,"tags":["IOC","block"],"description":"Bloqueo automático por playbook"}' \
+ https://thehive.local/api/case | jq '.id'</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Crea caso en TheHive al completar la acción de contención.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Notificación a Slack/Teams (Webhook)
+curl -X POST -H "Content-type: application/json" \
+ --data '{"text":"IOC 1.2.3.4 bloqueada en firewall (Playbook). Caso actualizado."}' \
+ https://hooks.slack.com/services/XXX/YYY/ZZZ</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Comunicación operativa al canal SOC.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Enriquecimiento -->
+    <section id="enriquecimiento">
+      <h2>Playbooks de Enriquecimiento (VT/MISP/AbuseIPDB) <span class="label">Comandos de Terminal</span></h2>
+      <div class="cards">
+        <div class="card">
+          <div class="cmd"># VirusTotal: reputación de dominio
+curl -s -H "x-apikey: &lt;VT_KEY&gt;" "https://www.virustotal.com/api/v3/domains/example.com" | jq '.data.attributes.last_analysis_stats'</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Estadísticas de análisis de VT para dominio.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># MISP: buscar IP
+curl -s -H "Authorization: &lt;MISP_KEY&gt;" -H "Accept: application/json" -H "Content-Type: application/json" \
+ -d '{"returnFormat":"json","value":"1.2.3.4"}' https://misp.local/events/restSearch | jq '.response'</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Consulta rápida de IoC en MISP.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># AbuseIPDB: reputación de IP
+curl -sG https://api.abuseipdb.com/api/v2/check --data-urlencode "ipAddress=1.2.3.4" -d maxAgeInDays=90 \
+ -H "Key: &lt;ABUSE_KEY&gt;" -H "Accept: application/json" | jq '.data.abuseConfidenceScore'</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Puntaje de abuso para priorizar acciones.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Guardar enriquecimiento en artefacto JSON
+jq -n --arg ip "1.2.3.4" --arg vt "malicious" --arg score "85" '{ip:$ip, vt:$vt, abuse_score:$score}' &gt; enrich.json</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Estructura de salida para alimentar otros pasos del playbook.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Python / API -->
+    <section id="python_api">
+      <h2>Automatización con Python y API REST <span class="label">Comandos de Terminal</span></h2>
+      <div class="cards">
+        <div class="card">
+          <div class="cmd"># Python: requests para Slack y bloqueo simple
+python3 - &lt;&lt;'PY'
+import os, requests, subprocess, json
+SLACK_WEBHOOK=os.environ.get("SLACK_WEBHOOK")
+IP="1.2.3.4"
+# 1) bloquear (iptables)
+subprocess.run(["bash","-lc",f"iptables -I INPUT -s {IP} -j DROP"], check=False)
+# 2) notificar
+requests.post(SLACK_WEBHOOK, json={"text": f"Bloqueada {IP} por playbook Python"})
+print("OK")
+PY</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Bloqueo + notificación en un solo script Python inline.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Python: crear caso TheHive
+python3 - &lt;&lt;'PY'
+import requests
+HIVE="https://thehive.local/api"
+TOKEN="&lt;HIVE_TOKEN&gt;"
+data={"title":"Alerta IOC","severity":2,"tlp":2,"tags":["IOC"],"description":"Caso automático"}
+r=requests.post(f"{HIVE}/case", headers={"Authorization":f"Bearer {TOKEN}","Content-Type":"application/json"}, json=data, verify=False)
+print(r.json())
+PY</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Automatiza creación de caso vía API en TheHive.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Python: enriquecer con MISP y guardar CSV
+python3 - &lt;&lt;'PY'
+import csv, requests, sys
+MISP="https://misp.local"
+KEY="&lt;MISP_KEY&gt;"
+value=sys.argv[1] if len(sys.argv)&gt;1 else "1.2.3.4"
+r=requests.post(f"{MISP}/events/restSearch", headers={"Authorization":KEY,"Accept":"application/json","Content-Type":"application/json"}, json={"returnFormat":"json","value":value}, verify=False)
+with open("misp_results.csv","w",newline="") as f:
+    w=csv.writer(f); w.writerow(["value","category","type","comment"])
+    for e in r.json().get("response",[]):
+        for a in e.get("Attribute",[]):
+            w.writerow([a.get("value"),a.get("category"),a.get("type"),a.get("comment")])
+print("misp_results.csv listo")
+PY</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Consulta MISP y exporta atributos enriquecidos a CSV.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Integraciones -->
+    <section id="integraciones">
+      <h2>Integración con TheHive / MISP / Splunk <span class="label">Comandos de Terminal</span></h2>
+      <div class="cards">
+        <div class="card">
+          <div class="cmd"># TheHive: añadir artefacto (IoC) a caso
+curl -s -H "Authorization: Bearer &lt;HIVE_TOKEN&gt;" -H "Content-Type: application/json" \
+ -d '{"_type":"case_artifact","dataType":"ip","data":"1.2.3.4","message":"IP sospechosa","tlp":2}' \
+ https://thehive.local/api/case/&lt;CASE_ID&gt;/artifact</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Registra IoC enriquecido en el caso.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Splunk: lanzar búsqueda desde API y convertir a CSV
+curl -s -H "Authorization: Splunk &lt;TOKEN&gt;" -d search='search index=alerts ip=1.2.3.4 | table _time,host,action' \
+ -d output_mode=csv https://splunk.local:8089/services/search/jobs/export &gt; correlacion.csv</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Correlaciona evidencia antes/después del playbook.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># MISP: crear evento con IoCs
+curl -s -H "Authorization: &lt;MISP_KEY&gt;" -H "Content-Type: application/json" -H "Accept: application/json" \
+ -d @evento_misp.json https://misp.local/events/add | jq '.Event.info'</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Publica evento de inteligencia resultante del playbook.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Gestión -->
+    <section id="gestion">
+      <h2>Gestión y Monitoreo de Playbooks <span class="label">Comandos de Terminal</span></h2>
+      <div class="cards">
+        <div class="card">
+          <div class="cmd"># Versionado de playbooks
+git add playbooks/ && git commit -m "feat: playbook bloqueo-ip" && git push origin main</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Control de cambios y auditoría de modificaciones.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Scheduling (cron) de tareas
+( crontab -l; echo "*/10 * * * * /usr/local/bin/playbook_check.sh" ) | crontab -</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Ejecución periódica de verificaciones de estado.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Health check de servicios
+curl -sk https://soar.local/health | jq '.'</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Comprobación de salud de la plataforma SOAR.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Reporte automático (Pandoc)
+pandoc reporte_playbooks.md -o reporte_playbooks.pdf</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Genera reporte periódico de ejecución y resultados.</div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<footer>Manual SOC — Playbooks y Automatización (SOAR)</footer>
+<button id="topBtn" title="Volver arriba">⬆</button>
+
+<script>
+// Copiar: concatena todos los bloques .cmd de la tarjeta (si hay varios)
+document.querySelectorAll('.card .btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const cmds = Array.from(btn.parentElement.querySelectorAll('.cmd')).map(d=>d.innerText).join('\n');
+    navigator.clipboard.writeText(cmds).then(() => {
+      const prev = btn.textContent; btn.textContent = 'Copiado';
+      setTimeout(() => btn.textContent = prev, 1200);
+    });
+  });
+});
+// Búsqueda
+document.getElementById('q').addEventListener('input', e => {
+  const term = e.target.value.toLowerCase();
+  document.querySelectorAll('main section').forEach(sec => {
+    let any=false;
+    sec.querySelectorAll('.card').forEach(card => {
+      const hit = card.textContent.toLowerCase().includes(term);
+      card.style.display = hit ? 'flex' : 'none';
+      if (hit) any = true;
+    });
+    sec.style.display = (any || !term) ? 'block' : 'none';
+  });
+});
+// Botón arriba
+const topBtn = document.getElementById('topBtn');
+window.addEventListener('scroll', () => {
+  topBtn.style.display = (document.documentElement.scrollTop > 400) ? 'flex' : 'none';
+});
+topBtn.addEventListener('click', () => {
+  window.scrollTo({top: 0, behavior: 'smooth'});
+});
+</script>
+</body>
+</html>

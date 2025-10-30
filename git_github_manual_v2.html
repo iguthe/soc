@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Comandos Git y GitHub — Manual</title>
+<style>
+:root{
+  --bg:#0b1020;--panel:#121a33;--muted:#98a2b3;--text:#e6e8ef;--chip:#243056;--border:#1d2747;
+}
+body{margin:0;background:linear-gradient(180deg,#0a0f21,#0b1126);color:var(--text);
+  font:14px/1.6 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,"Helvetica Neue",Arial;}
+header{position:sticky;top:0;z-index:100;background:rgba(11,17,38,.85);border-bottom:1px solid var(--border);backdrop-filter:saturate(180%) blur(10px)}
+.wrap{max-width:1100px;margin:auto;padding:16px}
+h1{margin:8px 0 4px;font-size:22px}
+.subtitle{margin:0 0 12px;color:var(--muted)}
+.grid{display:grid;grid-template-columns:260px 1fr;gap:16px}
+nav{position:sticky;top:86px;align-self:start;background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:8px;max-height:calc(100vh - 110px);overflow:auto}
+.cat{display:block;padding:10px 12px;border-radius:10px;color:#cdd3ea;text-decoration:none;border:1px solid transparent}
+.cat.active,.cat:hover{background:var(--chip);border-color:#2a3864}
+main{display:grid;gap:16px}
+section{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:12px}
+section h2{margin:6px 6px 8px;font-size:17px}
+.card{background:#0f162b;border:1px solid var(--border);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:4px}
+.cmd{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.desc{color:#a0aec0;font-size:13px}
+.btn{align-self:flex-start;border:1px solid var(--border);background:var(--chip);color:#cdd8ff;padding:6px 10px;border-radius:8px;cursor:pointer;font-size:13px}
+.btn:hover{border-color:#32406f}
+.searchbar{margin-top:8px;margin-bottom:12px}
+input[type=search]{width:100%;padding:10px;border-radius:8px;border:1px solid var(--border);background:#0c1430;color:var(--text)}
+@media(max-width:900px){.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+<h1>Comandos Git y GitHub</h1>
+<p class="subtitle">Referencia rápida para subir, mover, eliminar o crear archivos en repositorios mediante la terminal.</p>
+<div class="searchbar"><input id="q" type="search" placeholder="Buscar comando..."></div>
+</div></header>
+<div class="wrap grid">
+<nav id="nav"></nav>
+<main id="content"></main>
+</div>
+<footer style="text-align:center;color:var(--muted);padding:16px">Manual de referencia rápida — Git & GitHub</footer>
+<script>
+const DATA=[
+{cat:"Configuración inicial",items:[
+{cmd:"git config --global user.name 'TuNombre'",desc:"Define el nombre de usuario global para los commits."},
+{cmd:"git config --global user.email 'tuemail@example.com'",desc:"Establece el correo electrónico asociado a tus commits."},
+{cmd:"git config --list",desc:"Muestra la configuración actual de Git."}]},
+{cat:"Repositorios",items:[
+{cmd:"git init",desc:"Inicializa un nuevo repositorio Git en la carpeta actual."},
+{cmd:"git clone URL_REPO",desc:"Clona un repositorio remoto en una carpeta local."},
+{cmd:"git remote add origin URL",desc:"Asocia el repositorio local con uno remoto en GitHub."}]},
+{cat:"Cambios y confirmaciones",items:[
+{cmd:"git status",desc:"Muestra el estado de los archivos (nuevos, modificados, preparados)."},
+{cmd:"git add archivo.txt",desc:"Agrega un archivo específico al área de preparación (staging)."},
+{cmd:"git add .",desc:"Agrega todos los archivos modificados al área de preparación."},
+{cmd:"git commit -m 'mensaje'",desc:"Crea un nuevo commit con los archivos preparados y un mensaje."},
+{cmd:"git push origin main",desc:"Envía los commits locales al repositorio remoto en la rama main."},
+{cmd:"git pull origin main",desc:"Descarga y fusiona los cambios desde el remoto a tu rama local."}]},
+{cat:"Ramas (Branches)",items:[
+{cmd:"git branch",desc:"Lista todas las ramas locales del repositorio."},
+{cmd:"git branch nueva_rama",desc:"Crea una nueva rama local con el nombre especificado."},
+{cmd:"git checkout nueva_rama",desc:"Cambia la rama de trabajo actual."},
+{cmd:"git checkout -b nueva_rama",desc:"Crea y cambia directamente a una nueva rama."},
+{cmd:"git merge nombre_rama",desc:"Fusiona la rama especificada con la actual."},
+{cmd:"git branch -d nombre_rama",desc:"Elimina una rama local que ya ha sido fusionada."},
+{cmd:"git push origin --delete nombre_rama",desc:"Elimina una rama remota en el servidor GitHub."}]},
+{cat:"Eliminar o mover archivos",items:[
+{cmd:"git rm archivo.txt",desc:"Elimina un archivo del repositorio y del sistema local."},
+{cmd:"git rm --cached archivo.txt",desc:"Elimina un archivo del control de versiones pero lo mantiene localmente."},
+{cmd:"git mv archivo.txt carpeta/",desc:"Mueve o renombra un archivo dentro del repositorio."}]},
+{cat:"Deshacer y revertir",items:[
+{cmd:"git restore archivo.txt",desc:"Revierte los cambios no confirmados en un archivo."},
+{cmd:"git reset HEAD archivo.txt",desc:"Quita un archivo del área de preparación sin modificar su contenido."},
+{cmd:"git reset --hard HEAD~1",desc:"Elimina el último commit y restaura el estado anterior."},
+{cmd:"git revert <commit_id>",desc:"Crea un commit que revierte los cambios del commit especificado."}]},
+{cat:"Historial y estado",items:[
+{cmd:"git log",desc:"Muestra el historial completo de commits."},
+{cmd:"git log --oneline --graph --all",desc:"Muestra el historial resumido con estructura de ramas."},
+{cmd:"git diff",desc:"Muestra las diferencias entre el área de trabajo y el último commit."},
+{cmd:"git show <commit_id>",desc:"Muestra los detalles de un commit específico."}]},
+{cat:"Autenticación y conexión",items:[
+{cmd:"git remote -v",desc:"Lista las direcciones de los repositorios remotos configurados."},
+{cmd:"git push -u origin main",desc:"Sube los cambios y establece seguimiento con la rama remota."},
+{cmd:"git config --global credential.helper store",desc:"Guarda las credenciales de acceso para futuras conexiones."}]},
+{cat:"GitHub CLI (Opcional)",items:[
+{cmd:"gh auth login",desc:"Inicia sesión en GitHub desde la terminal usando la CLI."},
+{cmd:"gh repo create nombre_repo --public",desc:"Crea un nuevo repositorio público en GitHub."},
+{cmd:"gh repo clone usuario/repositorio",desc:"Clona un repositorio desde GitHub con la CLI."},
+{cmd:"gh issue create --title 'Bug' --body 'Descripción'",desc:"Crea un nuevo issue en el repositorio remoto."},
+{cmd:"gh pr create --base main --head rama --title 'PR' --body 'Detalles'",desc:"Crea una solicitud de pull request en GitHub."}]}
+];
+
+const nav=document.getElementById("nav");
+const content=document.getElementById("content");
+function render(){
+  DATA.forEach((s,i)=>{
+    const a=document.createElement("a");
+    a.href=`#sec-${i}`;a.textContent=s.cat;a.className="cat";
+    if(i===0)a.classList.add("active");
+    a.onclick=()=>{
+      document.querySelectorAll(".cat").forEach(x=>x.classList.remove("active"));
+      a.classList.add("active");
+    };
+    nav.appendChild(a);
+
+    const sec=document.createElement("section");sec.id=`sec-${i}`;
+    const h2=document.createElement("h2");h2.textContent=s.cat;sec.appendChild(h2);
+    s.items.forEach(it=>{
+      const card=document.createElement("div");card.className="card";
+      const cmd=document.createElement("div");cmd.className="cmd";cmd.textContent=it.cmd;
+      const btn=document.createElement("button");btn.className="btn";btn.textContent="Copiar";
+      btn.onclick=()=>{navigator.clipboard.writeText(it.cmd).then(()=>{btn.textContent="Copiado";setTimeout(()=>btn.textContent="Copiar",1200);});};
+      const desc=document.createElement("div");desc.className="desc";desc.textContent=it.desc;
+      card.append(cmd,btn,desc);sec.appendChild(card);
+    });
+    content.appendChild(sec);
+  });
+}
+render();
+
+document.getElementById("q").addEventListener("input",e=>{
+  const term=e.target.value.toLowerCase();
+  document.querySelectorAll("section").forEach(sec=>{
+    let visible=false;
+    sec.querySelectorAll(".card").forEach(card=>{
+      const match=card.textContent.toLowerCase().includes(term);
+      card.style.display=match?"flex":"none";
+      if(match)visible=true;
+    });
+    sec.style.display=visible||!term?"block":"none";
+  });
+});
+</script>
+</body>
+</html>

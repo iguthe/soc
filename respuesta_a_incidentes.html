@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Respuesta a Incidentes (IR) — Manual SOC</title>
+<style>
+:root{ --bg:#0b1020; --panel:#121a33; --muted:#98a2b3; --text:#e6e8ef; --chip:#243056; --border:#1d2747; --card:#0f162b; }
+html{scroll-behavior:smooth}
+*{box-sizing:border-box}
+body{margin:0;background:linear-gradient(180deg,#0a0f21,#0b1126);color:var(--text);
+  font:14px/1.6 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,"Helvetica Neue",Arial;}
+header{position:sticky;top:0;z-index:100;background:rgba(11,17,38,.85);
+  border-bottom:1px solid var(--border);backdrop-filter:saturate(180%) blur(10px)}
+.wrap{max-width:1100px;margin:auto;padding:16px}
+h1{margin:8px 0 4px;font-size:22px}
+.subtitle{margin:0 0 12px;color:var(--muted)}
+.grid{display:grid;grid-template-columns:260px 1fr;gap:16px}
+@media(max-width:900px){.grid{grid-template-columns:1fr}nav{position:static;max-height:none}}
+nav{position:sticky;top:86px;align-self:start;background:var(--panel);border:1px solid var(--border);
+  border-radius:14px;padding:8px;max-height:calc(100vh - 110px);overflow:auto}
+.cat{display:block;padding:10px 12px;border-radius:10px;color:#cdd3ea;text-decoration:none;border:1px solid transparent}
+.cat:hover{background:var(--chip);border-color:#2a3864}
+main{display:grid;gap:16px}
+section{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:12px}
+section h2{margin:6px 6px 8px;font-size:17px;display:flex;justify-content:space-between;align-items:center}
+.label{font-size:12px;color:#a0aec0;border:1px solid #2a3864;background:#0f162b;padding:3px 8px;border-radius:8px;white-space:nowrap}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:6px}
+.cmd{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:#0e1a3a;border:1px solid #223464;border-radius:8px;padding:8px;color:#e6eeff;white-space:pre-wrap}
+.desc{color:#a0aec0;font-size:13px}
+.btn{align-self:flex-start;border:1px solid var(--border);background:var(--chip);color:#cdd8ff;padding:6px 10px;border-radius:8px;cursor:pointer;font-size:13px}
+.btn:hover{border-color:#32406f}
+.searchbar{margin-top:8px;margin-bottom:12px}
+input[type=search]{width:100%;padding:10px;border-radius:8px;border:1px solid var(--border);background:#0c1430;color:#e6e8ef}
+#topBtn{position:fixed;bottom:25px;right:25px;background:#243056;border:1px solid #32406f;color:#cdd8ff;
+  border-radius:50%;width:45px;height:45px;font-size:22px;cursor:pointer;display:none;align-items:center;justify-content:center;transition:0.3s}
+#topBtn:hover{background:#32406f}
+footer{color:var(--muted);text-align:center;padding:16px}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <h1>Respuesta a Incidentes (IR)</h1>
+  <p class="subtitle">Ciclo NIST 800-61: Preparación, Detección, Contención, Erradicación, Recuperación y Lecciones Aprendidas. Comandos y flujos operativos SOC.</p>
+  <div class="searchbar"><input id="q" type="search" placeholder="Buscar fase, comando o técnica..."></div>
+</div></header>
+
+<div class="wrap grid">
+  <nav>
+    <a class="cat" href="#nist">Ciclo NIST 800-61</a>
+    <a class="cat" href="#identificacion">Identificación y Clasificación</a>
+    <a class="cat" href="#contencion">Contención y Erradicación</a>
+    <a class="cat" href="#recuperacion">Recuperación y Verificación</a>
+    <a class="cat" href="#reportes">Reportes y Lecciones Aprendidas</a>
+    <a class="cat" href="#herramientas">Herramientas IR (DFIR)</a>
+  </nav>
+
+  <main id="content">
+    <!-- NIST -->
+    <section id="nist">
+      <h2>Ciclo NIST 800-61 <span class="label">Flujos & Plantillas</span></h2>
+      <div class="cards">
+        <div class="card">
+          <div class="cmd"># Plantilla de bitácora IR por incidente
+cat > bitacora_IR.md <<'MD'
+# Caso: INC-______
+Fecha detección: ______  | Reportado por: ______
+Severidad: (1-5) ______  | Tipo: (malware/phishing/DoS/insider/etc.)
+
+## 1) Detección
+- Origen alerta: ______
+- Evidencia inicial: ______
+
+## 2) Contención
+- Acciones inmediatas: ______
+- Hosts aislados: ______
+
+## 3) Erradicación
+- Artefactos removidos: ______
+
+## 4) Recuperación
+- Servicios restaurados: ______
+- Verificación post: ______
+
+## 5) Lecciones aprendidas
+- Causas raíz: ______
+- Acciones preventivas: ______
+MD</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Usa esta plantilla para documentar todo el ciclo NIST.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Clasificación rápida por severidad (ejemplo JSON)
+jq -n --arg sev "3" --arg tipo "ransomware" --arg origen "EDR" '{sev:$sev,tipo:$tipo,origen:$origen,timestamp:now}' > clasificacion.json</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Registro mínimo estandarizado de severidad/tipo.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Identificación -->
+    <section id="identificacion">
+      <h2>Identificación y Clasificación <span class="label">SPL & Indicadores</span></h2>
+      <div class="cards">
+        <div class="card">
+          <div class="cmd"># Splunk: correlación de múltiples alertas por host en 15m
+index=alerts earliest=-15m | stats count dc(signature) as firmas values(signature) by host | where count>=3 OR firmas>=2</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Detección de host con múltiples señales distintas.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Extraer IOC de un dump rápido
+strings sample.bin | egrep -i 'http|tcp|api|token|passwd' | sort -u | head -100</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Indicadores textuales para enriquecer la hipótesis.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Identificar procesos anómalos (Linux)
+ps aux --sort=-%cpu | head -15</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Lista procesos con mayor consumo; punto de partida.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Chequear conexiones activas
+ss -tunp | head -25</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Revisa sockets y procesos asociados.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Contención -->
+    <section id="contencion">
+      <h2>Contención y Erradicación <span class="label">Aislamiento & Limpieza</span></h2>
+      <div class="cards">
+        <div class="card">
+          <div class="cmd"># Aislar host con iptables
+iptables -P INPUT DROP
+iptables -A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+iptables -A INPUT -p tcp --dport 22 -s 10.0.0.0/8 -j ACCEPT</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Corta acceso excepto sesión de mantenimiento segura.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Cuarentena remota con Ansible
+ansible comprom -m shell -a 'nmcli dev disconnect eth0' -b</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Desconecta la interfaz para cortar propagación.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Eliminar persistencia básica (Linux: cron/systemd)
+crontab -l | sed '/sospechoso/d' | crontab -
+systemctl list-timers | awk '/sospechoso/ {print $1}' | xargs -r systemctl disable --now</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Remueve tareas programadas maliciosas.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Windows: detener y deshabilitar servicio malicioso
+sc stop MalSrv &amp;&amp; sc config MalSrv start= disabled</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Acción rápida ante servicios persistentes.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Endpoints: matar proceso por hash (Linux ejemplo)
+pgrep -f evil.bin | xargs -r kill -9</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Finaliza procesos maliciosos de forma inmediata.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Recuperación -->
+    <section id="recuperacion">
+      <h2>Recuperación y Verificación <span class="label">Restauración & Validación</span></h2>
+      <div class="cards">
+        <div class="card">
+          <div class="cmd"># Verificar integridad (AIDE)
+aide --check | tee /tmp/aide_post.txt</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Comprueba cambios tras limpieza/recuperación.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Restaurar desde backup (ejemplo borg)
+borg extract --verbose /backups::2025-10-01 home/ www/ etc/</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Restauración selectiva de datos críticos.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Monitoreo post-incidente (Splunk, 24-48h)
+index=endpoint host=HOST_AFECTADO earliest=-48h | stats count by signature, process, user | sort - count</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Vigila recurrencias o actividad remanente.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Rehabilitar accesos y remover reglas temporales
+iptables -F INPUT && iptables -P INPUT ACCEPT</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Vuelve a la política normal tras validación.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Reportes -->
+    <section id="reportes">
+      <h2>Reportes y Lecciones Aprendidas <span class="label">KPIs & Evidencia</span></h2>
+      <div class="cards">
+        <div class="card">
+          <div class="cmd"># KPIs: MTTA/MTTR (Splunk)
+index=incidentes | stats min(_time) as first max(_time) as last by ticket | eval dur=last-first | stats avg(dur) as MTTR</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Calcula tiempos de resolución por ticket.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Exportar evidencia a paquete con hash
+tar -czf INC-0013_artifacts.tar.gz evidencia/ && sha256sum INC-0013_artifacts.tar.gz > INC-0013.sha256</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Empaqueta y sella evidencia para auditoría.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Reporte PDF automático (Pandoc)
+pandoc bitacora_IR.md -o informe_INC-0013.pdf</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Genera informe final documentado.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Herramientas -->
+    <section id="herramientas">
+      <h2>Herramientas IR (DFIR) <span class="label">Volatility / KAPE / Live</span></h2>
+      <div class="cards">
+        <div class="card">
+          <div class="cmd"># Volatility3: procesos y malfind
+vol -f memory.raw windows.pslist.PsList
+vol -f memory.raw windows.malfind.Malfind</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Inspección de memoria para descubrir inyecciones.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># KAPE (Windows): adquisición rápida (ejemplo CLI)
+kape.exe --tsource C: --tdest D:\evidence --tflush --vhdx --target KapeTriage</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Colecta artefactos de interés con plantillas KAPE.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Live triage (Linux): recolectar artefactos básicos
+mkdir -p /tmp/triage; cp /var/log/auth.log /tmp/triage/; cp -r /etc/ssh /tmp/triage/; ss -tunp > /tmp/triage/conns.txt</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Consolida artefactos de alto valor en campo.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Hashes de artefactos
+find /tmp/triage -type f -exec sha256sum {} \; > /tmp/triage/hashes.sha256</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Garantiza integridad y trazabilidad.</div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<footer>Manual SOC — Respuesta a Incidentes (IR)</footer>
+<button id="topBtn" title="Volver arriba">⬆</button>
+
+<script>
+// Copiar: concatena todos los bloques .cmd de la tarjeta (si hay varios)
+document.querySelectorAll('.card .btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const cmds = Array.from(btn.parentElement.querySelectorAll('.cmd')).map(d=>d.innerText).join('\n');
+    navigator.clipboard.writeText(cmds).then(() => {
+      const prev = btn.textContent; btn.textContent = 'Copiado';
+      setTimeout(() => btn.textContent = prev, 1200);
+    });
+  });
+});
+// Búsqueda
+document.getElementById('q').addEventListener('input', e => {
+  const term = e.target.value.toLowerCase();
+  document.querySelectorAll('main section').forEach(sec => {
+    let any=false;
+    sec.querySelectorAll('.card').forEach(card => {
+      const hit = card.textContent.toLowerCase().includes(term);
+      card.style.display = hit ? 'flex' : 'none';
+      if (hit) any = true;
+    });
+    sec.style.display = (any || !term) ? 'block' : 'none';
+  });
+});
+// Botón arriba
+const topBtn = document.getElementById('topBtn');
+window.addEventListener('scroll', () => {
+  topBtn.style.display = (document.documentElement.scrollTop > 400) ? 'flex' : 'none';
+});
+topBtn.addEventListener('click', () => {
+  window.scrollTo({top: 0, behavior: 'smooth'});
+});
+</script>
+</body>
+</html>

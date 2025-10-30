@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hunting de Amenazas — Manual SOC</title>
+<style>
+:root{
+  --bg:#0b1020;--panel:#121a33;--muted:#98a2b3;--text:#e6e8ef;--chip:#243056;--border:#1d2747;--card:#0f162b;
+}
+html{scroll-behavior:smooth}
+*{box-sizing:border-box}
+body{margin:0;background:linear-gradient(180deg,#0a0f21,#0b1126);color:var(--text);
+  font:14px/1.6 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,"Helvetica Neue",Arial;}
+header{position:sticky;top:0;z-index:100;background:rgba(11,17,38,.85);
+  border-bottom:1px solid var(--border);backdrop-filter:saturate(180%) blur(10px)}
+.wrap{max-width:1100px;margin:auto;padding:16px}
+h1{margin:8px 0 4px;font-size:22px}
+.subtitle{margin:0 0 12px;color:var(--muted)}
+.grid{display:grid;grid-template-columns:260px 1fr;gap:16px}
+@media(max-width:900px){.grid{grid-template-columns:1fr}nav{position:static;max-height:none}}
+nav{position:sticky;top:86px;align-self:start;background:var(--panel);border:1px solid var(--border);
+  border-radius:14px;padding:8px;max-height:calc(100vh - 110px);overflow:auto}
+.cat{display:block;padding:10px 12px;border-radius:10px;color:#cdd3ea;text-decoration:none;border:1px solid transparent}
+.cat:hover{background:var(--chip);border-color:#2a3864}
+main{display:grid;gap:16px}
+section{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:12px}
+section h2{margin:6px 6px 8px;font-size:17px;display:flex;justify-content:space-between;align-items:center}
+.label{font-size:12px;color:#a0aec0;border:1px solid #2a3864;background:#0f162b;padding:3px 8px;border-radius:8px;white-space:nowrap}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:6px}
+.cmd{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:#0e1a3a;border:1px solid #223464;border-radius:8px;padding:8px;color:#e6eeff;white-space:pre-wrap}
+.desc{color:#a0aec0;font-size:13px}
+.btn{align-self:flex-start;border:1px solid var(--border);background:var(--chip);color:#cdd8ff;padding:6px 10px;border-radius:8px;cursor:pointer;font-size:13px}
+.btn:hover{border-color:#32406f}
+.searchbar{margin-top:8px;margin-bottom:12px}
+input[type=search]{width:100%;padding:10px;border-radius:8px;border:1px solid var(--border);background:#0c1430;color:var(--text)}
+#topBtn{position:fixed;bottom:25px;right:25px;background:#243056;border:1px solid #32406f;color:#cdd8ff;
+  border-radius:50%;width:45px;height:45px;font-size:22px;cursor:pointer;display:none;align-items:center;justify-content:center;transition:0.3s}
+#topBtn:hover{background:#32406f}
+footer{color:var(--muted);text-align:center;padding:16px}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <h1>Hunting de Amenazas</h1>
+  <p class="subtitle">Hipótesis, tácticas MITRE ATT&CK, queries y comandos para descubrir actividad anómala sin alerta previa.</p>
+  <div class="searchbar"><input id="q" type="search" placeholder="Buscar comando o técnica..."></div>
+</div></header>
+
+<div class="wrap grid">
+  <nav>
+    <a class="cat" href="#plan">Hipótesis y Planificación</a>
+    <a class="cat" href="#red">Hunting de Red</a>
+    <a class="cat" href="#endpoint">Hunting en Endpoints</a>
+    <a class="cat" href="#persistencia">Persistencia y Tareas</a>
+    <a class="cat" href="#lateral">Movimiento Lateral</a>
+    <a class="cat" href="#splunk">Consultas en Splunk</a>
+  </nav>
+
+  <main id="content">
+    <!-- Planificación -->
+    <section id="plan">
+      <h2>Hipótesis y Planificación <span class="label">Comandos de Terminal</span></h2>
+      <div class="cards">
+        <div class="card"><div class="cmd">echo 'Hipótesis: Beacon HTTP(s) cada 5 min desde host de finanzas a ASN desconocido' >> plan_hunt.md</div><button class="btn">Copiar</button><div class="desc">Registra hipótesis de hunting y alcance.</div></div>
+        <div class="card"><div class="cmd">cat plan_hunt.md | sed '1,100!d'</div><button class="btn">Copiar</button><div class="desc">Revisa primeras líneas del plan.</div></div>
+        <div class="card"><div class="cmd">curl -s https://ipinfo.io/AS13335 | jq '.'</div><button class="btn">Copiar</button><div class="desc">Contexto de ASN/infra pública.</div></div>
+        <div class="card"><div class="cmd">jq -r '.assets[] | select(.dept=="finanzas") | .hostname' inventario.json</div><button class="btn">Copiar</button><div class="desc">Lista objetivos enfocados según inventario.</div></div>
+      </div>
+    </section>
+
+    <!-- Red -->
+    <section id="red">
+      <h2>Hunting de Red <span class="label">Comandos de Terminal</span></h2>
+      <div class="cards">
+        <div class="card"><div class="cmd">tshark -i eth0 -Y 'tcp.flags.syn==1 && tcp.flags.ack==0' -a duration:60 -T fields -e ip.src -e tcp.dstport | sort | uniq -c | sort -nr | head</div><button class="btn">Copiar</button><div class="desc">Sondeos SYN inusuales (posible escaneo).</div></div>
+        <div class="card"><div class="cmd">tcpdump -i any 'tcp[tcpflags] & (tcp-syn|tcp-ack) == tcp-syn' -nn -c 200</div><button class="btn">Copiar</button><div class="desc">Captura rápida de SYNs.</div></div>
+        <div class="card"><div class="cmd">conntrack -L | awk '{print $5}' | cut -d= -f2 | sort | uniq -c | sort -nr | head</div><button class="btn">Copiar</button><div class="desc">Top destinos de conexiones activas (NAT/conntrack).</div></div>
+        <div class="card"><div class="cmd">ss -tuna | awk 'NR>1{print $6}' | sort | uniq -c | sort -nr | head</div><button class="btn">Copiar</button><div class="desc">Puertos y estados TCP más frecuentes.</div></div>
+        <div class="card"><div class="cmd">zeek -r captura.pcap | head -50</div><button class="btn">Copiar</button><div class="desc">Resumen de logs Zeek desde un PCAP.</div></div>
+      </div>
+    </section>
+
+    <!-- Endpoint -->
+    <section id="endpoint">
+      <h2>Hunting en Endpoints <span class="label">Comandos de Terminal</span></h2>
+      <div class="cards">
+        <div class="card"><div class="cmd">find / -xdev -type f -perm -4000 -printf '%p %m\n' 2>/dev/null</div><button class="btn">Copiar</button><div class="desc">Binarios SUID sospechosos en Linux.</div></div>
+        <div class="card"><div class="cmd">grep -R --color -nE 'bash -i|nc -e|/dev/tcp/' /etc /usr /opt 2>/dev/null</div><button class="btn">Copiar</button><div class="desc">Indicios de reverse shells embebidos.</div></div>
+        <div class="card"><div class="cmd">Get-WinEvent -LogName Security | Where-Object {$_.Id -in 4688,4697} | Select TimeCreated,Id,Message</div><button class="btn">Copiar</button><div class="desc">(Windows/PowerShell) Creación de procesos/servicios.</div></div>
+        <div class="card"><div class="cmd">grep -R "\x7fELF" /tmp /var/tmp 2>/dev/null</div><button class="btn">Copiar</button><div class="desc">Binarios ELF en ubicaciones temporales.</div></div>
+        <div class="card"><div class="cmd">lsof -nPi | grep ESTABLISHED</div><button class="btn">Copiar</button><div class="desc">Conexiones activas por proceso.</div></div>
+      </div>
+    </section>
+
+    <!-- Persistencia -->
+    <section id="persistencia">
+      <h2>Persistencia y Tareas <span class="label">Comandos de Terminal</span></h2>
+      <div class="cards">
+        <div class="card"><div class="cmd">grep -R "@reboot|cron" /etc/cron* /var/spool/cron 2>/dev/null</div><button class="btn">Copiar</button><div class="desc">Tareas cron sospechosas.</div></div>
+        <div class="card"><div class="cmd">systemctl list-timers --all</div><button class="btn">Copiar</button><div class="desc">Timers de systemd (persistencia por temporizadores).</div></div>
+        <div class="card"><div class="cmd">find /etc/systemd/system -name '*.service' -exec grep -H ExecStart {} \;</div><button class="btn">Copiar</button><div class="desc">Servicios con rutas raras.</div></div>
+        <div class="card"><div class="cmd">Get-ScheduledTask | where {$_.TaskName -like '*Update*' -or $_.TaskName -like '*Helper*'}</div><button class="btn">Copiar</button><div class="desc">(Windows) Tareas programadas con nombres genéricos.</div></div>
+        <div class="card"><div class="cmd">grep -R 'LD_PRELOAD' /etc/ld.so.preload /etc/profile* 2>/dev/null</div><button class="btn">Copiar</button><div class="desc">Hooks de carga dinámica.</div></div>
+      </div>
+    </section>
+
+    <!-- Lateral -->
+    <section id="lateral">
+      <h2>Movimiento Lateral <span class="label">Comandos de Terminal</span></h2>
+      <div class="cards">
+        <div class="card"><div class="cmd">last -a | head -30</div><button class="btn">Copiar</button><div class="desc">Sesiones recientes (rutas de pivote).</div></div>
+        <div class="card"><div class="cmd">grep -R 'Accepted password' /var/log/auth.log</div><button class="btn">Copiar</button><div class="desc">Autenticaciones exitosas SSH.</div></div>
+        <div class="card"><div class="cmd">Get-WinEvent -FilterHashtable @{LogName='Security'; Id=4624} | Select TimeCreated,Message</div><button class="btn">Copiar</button><div class="desc">(Windows) Logons exitosos para trazar pivotes.</div></div>
+        <div class="card"><div class="cmd">arp -an | awk '{print $2}' | tr -d '()' | sort -u</div><button class="btn">Copiar</button><div class="desc">Vecinos ARP (descubrir saltos laterales).</div></div>
+        <div class="card"><div class="cmd">grep -R "ssh -J|ProxyJump" ~/.ssh /etc/ssh 2>/dev/null</div><button class="btn">Copiar</button><div class="desc">Revisa uso de ProxyJump/JumpHosts.</div></div>
+      </div>
+    </section>
+
+    <!-- Splunk -->
+    <section id="splunk">
+      <h2>Consultas en Splunk <span class="label">Comandos de Terminal</span></h2>
+      <div class="cards">
+        <div class="card"><div class="cmd">index=wineventlog EventCode=4688 | stats count by New_Process_Name, Parent_Process_Name | sort - count | head 20</div><button class="btn">Copiar</button><div class="desc">Procesos poco frecuentes por combinación padre/hijo.</div></div>
+        <div class="card"><div class="cmd">index=sysmon (EventCode=1 OR EventCode=3) | bucket _time span=10m | stats dc(process_name) dc(dest_ip) by _time, host | where 'dc(process_name)'>50 OR 'dc(dest_ip)'>100</div><button class="btn">Copiar</button><div class="desc">Estallidos de diversidad de procesos o destinos (beacons/downloaders).</div></div>
+        <div class="card"><div class="cmd">index=proxy status=200 method=CONNECT | stats count by dest, user | sort - count | head 30</div><button class="btn">Copiar</button><div class="desc">Uso de túneles HTTP CONNECT.</div></div>
+        <div class="card"><div class="cmd">index=dns (query="*.onion" OR query IN ("*.top","*.country")) | stats count by query, src | sort - count</div><button class="btn">Copiar</button><div class="desc">Consultas DNS sospechosas/raras.</div></div>
+        <div class="card"><div class="cmd">index=endpoint (cmdline="*base64*" OR cmdline="*FromBase64String*") | stats count by user, host, process, cmdline | sort - count</div><button class="btn">Copiar</button><div class="desc">Uso de Base64 en línea de comandos (posible ofuscación).</div></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<footer>Manual de referencia SOC — Hunting de Amenazas</footer>
+<button id="topBtn" title="Volver arriba">⬆</button>
+
+<script>
+// Copiar
+document.querySelectorAll('.card .btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const cmd = btn.parentElement.querySelector('.cmd').innerText;
+    navigator.clipboard.writeText(cmd).then(() => {
+      const prev = btn.textContent; btn.textContent = 'Copiado';
+      setTimeout(() => btn.textContent = prev, 1200);
+    });
+  });
+});
+// Búsqueda
+document.getElementById('q').addEventListener('input', e => {
+  const term = e.target.value.toLowerCase();
+  document.querySelectorAll('main section').forEach(sec => {
+    let any=false;
+    sec.querySelectorAll('.card').forEach(card => {
+      const hit = card.textContent.toLowerCase().includes(term);
+      card.style.display = hit ? 'flex' : 'none';
+      if (hit) any = true;
+    });
+    sec.style.display = (any || !term) ? 'block' : 'none';
+  });
+});
+// Botón arriba
+const topBtn = document.getElementById('topBtn');
+window.addEventListener('scroll', () => {
+  topBtn.style.display = (document.documentElement.scrollTop > 400) ? 'flex' : 'none';
+});
+topBtn.addEventListener('click', () => {
+  window.scrollTo({top: 0, behavior: 'smooth'});
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MISP e Inteligencia de Amenazas — Manual SOC</title>
+<style>
+:root{
+  --bg:#0b1020;--panel:#121a33;--muted:#98a2b3;--text:#e6e8ef;--chip:#243056;--border:#1d2747;--card:#0f162b;
+}
+html{scroll-behavior:smooth}
+*{box-sizing:border-box}
+body{margin:0;background:linear-gradient(180deg,#0a0f21,#0b1126);color:var(--text);
+  font:14px/1.6 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,"Helvetica Neue",Arial;}
+header{position:sticky;top:0;z-index:100;background:rgba(11,17,38,.85);
+  border-bottom:1px solid var(--border);backdrop-filter:saturate(180%) blur(10px)}
+.wrap{max-width:1100px;margin:auto;padding:16px}
+h1{margin:8px 0 4px;font-size:22px}
+.subtitle{margin:0 0 12px;color:var(--muted)}
+.grid{display:grid;grid-template-columns:260px 1fr;gap:16px}
+@media(max-width:900px){.grid{grid-template-columns:1fr}nav{position:static;max-height:none}}
+nav{position:sticky;top:86px;align-self:start;background:var(--panel);border:1px solid var(--border);
+  border-radius:14px;padding:8px;max-height:calc(100vh - 110px);overflow:auto}
+.cat{display:block;padding:10px 12px;border-radius:10px;color:#cdd3ea;text-decoration:none;border:1px solid transparent}
+.cat:hover{background:var(--chip);border-color:#2a3864}
+main{display:grid;gap:16px}
+section{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:12px}
+section h2{margin:6px 6px 8px;font-size:17px;display:flex;justify-content:space-between;align-items:center}
+.label{font-size:12px;color:#a0aec0;border:1px solid #2a3864;background:#0f162b;padding:3px 8px;border-radius:8px;white-space:nowrap}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:6px}
+.cmd{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:#0e1a3a;border:1px solid #223464;border-radius:8px;padding:8px;color:#e6eeff;white-space:pre-wrap}
+.desc{color:#a0aec0;font-size:13px}
+.btn{align-self:flex-start;border:1px solid var(--border);background:var(--chip);color:#cdd8ff;padding:6px 10px;border-radius:8px;cursor:pointer;font-size:13px}
+.btn:hover{border-color:#32406f}
+.searchbar{margin-top:8px;margin-bottom:12px}
+input[type=search]{width:100%;padding:10px;border-radius:8px;border:1px solid var(--border);background:#0c1430;color:#e6e8ef}
+#topBtn{position:fixed;bottom:25px;right:25px;background:#243056;border:1px solid #32406f;color:#cdd8ff;
+  border-radius:50%;width:45px;height:45px;font-size:22px;cursor:pointer;display:none;align-items:center;justify-content:center;transition:0.3s}
+#topBtn:hover{background:#32406f}
+footer{color:var(--muted);text-align:center;padding:16px}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <h1>MISP e Inteligencia de Amenazas</h1>
+  <p class="subtitle">Flujo de eventos, atributos e indicadores (IoCs). Creación, importación/exportación, automatización por API y sincronización.</p>
+  <div class="searchbar"><input id="q" type="search" placeholder="Buscar comando o tarea MISP..."></div>
+</div></header>
+
+<div class="wrap grid">
+  <nav>
+    <a class="cat" href="#intro">Introducción y Flujo</a>
+    <a class="cat" href="#crear">Crear y Publicar Eventos</a>
+    <a class="cat" href="#iocs">Importación / Exportación de IoCs</a>
+    <a class="cat" href="#api">Automatización (API REST y Python)</a>
+    <a class="cat" href="#integracion">Integración con TheHive / Splunk / SOAR</a>
+    <a class="cat" href="#sync">Mantenimiento, Sincronización y Roles</a>
+  </nav>
+
+  <main id="content">
+    <!-- Intro -->
+    <section id="intro">
+      <h2>Introducción y Flujo <span class="label">Comandos de Terminal</span></h2>
+      <div class="cards">
+        <div class="card">
+          <div class="cmd"># Flujo típico: Ingesta → Normalización → Correlación → Publicación → Consumo</div>
+          <div class="cmd">echo "MISP: ingest-normalize-correlate-publish-consume" &gt;&gt; misp_notas.md</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Plantilla de notas para documentar pipelines de inteligencia.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Verificar conectividad y versión de MISP
+curl -sk -H "Authorization: &lt;MISP_KEY&gt;" -H "Accept: application/json" https://misp.local/servers/getVersion</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Comprueba que el nodo MISP responde y su versión.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Crear/Publicar -->
+    <section id="crear">
+      <h2>Crear y Publicar Eventos <span class="label">Comandos de Terminal</span></h2>
+      <div class="cards">
+        <div class="card">
+          <div class="cmd"># Crear evento (JSON mínimo)</div>
+          <div class="cmd">cat &gt; evento.json &lt;&lt;'JSON'
+{
+  "Event": {
+    "info": "Campaña phishing bancario",
+    "distribution": 1,
+    "threat_level_id": 2,
+    "analysis": 1,
+    "Attribute": [
+      {"type":"domain","category":"Network activity","value":"phish-bank.example"},
+      {"type":"ip-dst","category":"Network activity","value":"1.2.3.4","comment":"C2"},
+      {"type":"url","category":"Network activity","value":"http://phish-bank.example/login"}
+    ],
+    "Tag": [{"name":"tlp:amber"}, {"name":"campaign:phishing"}]
+  }
+}
+JSON</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Evento con atributos y tags básicos (TLP/campaña).</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Publicar evento</div>
+          <div class="cmd">curl -sk -H "Authorization: &lt;MISP_KEY&gt;" -H "Content-Type: application/json" -H "Accept: application/json" \
+ -d @evento.json https://misp.local/events/add | jq '.Event.uuid'</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Crea el evento y devuelve su UUID.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Añadir atributo a evento existente</div>
+          <div class="cmd">curl -sk -H "Authorization: &lt;MISP_KEY&gt;" -H "Content-Type: application/json" -H "Accept: application/json" \
+ -d '{"type":"filename|sha256","value":"loader.exe|&lt;HASH&gt;","to_ids":true}' \
+ https://misp.local/events/&lt;EVENT_ID&gt;/attributes/add</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Agrega IoC con relación filename|sha256 y marca para IDS.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Aplicar tags TLP/galaxies</div>
+          <div class="cmd">curl -sk -H "Authorization: &lt;MISP_KEY&gt;" -H "Content-Type: application/json" -H "Accept: application/json" \
+ -d '{"uuid":"&lt;EVENT_UUID&gt;","tag":"tlp:amber"}' https://misp.local/events/addTag</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Etiqueta el evento con TLP apropiado.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- IoCs I/O -->
+    <section id="iocs">
+      <h2>Importación / Exportación de IoCs <span class="label">Comandos de Terminal</span></h2>
+      <div class="cards">
+        <div class="card">
+          <div class="cmd"># Importar CSV (domain,ip-dst,url,...)
+curl -sk -H "Authorization: &lt;MISP_KEY&gt;" -F "request_json={\"adhereToWarningLists\":true}" \
+ -F "file=@iocs.csv" https://misp.local/attributes/add/csv</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Importa IoCs desde CSV respetando listas de aviso.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Exportar atributos por tipo (p.ej. IPs destino)
+curl -sk -H "Authorization: &lt;MISP_KEY&gt;" -H "Accept: text/plain" \
+ "https://misp.local/attributes/restSearch/type:ip-dst/returnFormat:text"</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Lista de IPs de salida para alimentar bloqueos/IDS.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Exportar en formato STIX 2.1</div>
+          <div class="cmd">curl -sk -H "Authorization: &lt;MISP_KEY&gt;" -H "Accept: application/json" \
+ "https://misp.local/events/restSearch/download/stix2/returnFormat:json" &gt; export_stix2.json</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Intercambio de inteligencia con terceros/ISACs.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Exportar eventos según tag</div>
+          <div class="cmd">curl -sk -H "Authorization: &lt;MISP_KEY&gt;" -H "Accept: application/json" \
+ -d '{"tags":["campaign:phishing","tlp:amber"],"page":1,"limit":50}' https://misp.local/events/restSearch &gt; eventos_filtrados.json</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Consulta filtrada de eventos por tags.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- API / Python -->
+    <section id="api">
+      <h2>Automatización (API REST y Python) <span class="label">Comandos de Terminal</span></h2>
+      <div class="cards">
+        <div class="card">
+          <div class="cmd"># Python (PyMISP): crear evento y añadir IoC
+python3 - &lt;&lt;'PY'
+from pymisp import ExpandedPyMISP, MISPEvent, MISPAttribute
+m=ExpandedPyMISP("https://misp.local","&lt;MISP_KEY&gt;",ssl=False)
+e=MISPEvent(); e.info="IOC automático"; e.threat_level_id=2; e.analysis=1
+e.add_tag("tlp:amber"); e.add_attribute("ip-dst","1.2.3.4",comment="C2")
+res=m.add_event(e); print(res["Event"]["id"])
+PY</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Uso de PyMISP para automatizar creación y tagging.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Python: búsqueda y exportación CSV
+python3 - &lt;&lt;'PY'
+import csv, json, requests
+MISP="https://misp.local"; KEY="&lt;MISP_KEY&gt;"
+q={"returnFormat":"json","value":"1.2.3.4"}
+r=requests.post(f"{MISP}/events/restSearch",headers={"Authorization":KEY,"Accept":"application/json","Content-Type":"application/json"},json=q,verify=False)
+with open("misp_out.csv","w",newline="") as f:
+    w=csv.writer(f); w.writerow(["event","type","value","category","to_ids"])
+    for e in r.json().get("response",[]):
+        for a in e.get("Attribute",[]):
+            w.writerow([e.get("Event",{}).get("info"),a.get("type"),a.get("value"),a.get("category"),a.get("to_ids")])
+print("misp_out.csv listo")
+PY</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Consulta atributos y los vuelca a CSV para análisis.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Webhook de salida (push de IoCs a firewall via API)
+curl -sk -H "Authorization: &lt;MISP_KEY&gt;" -H "Accept: application/json" \
+ -d '{"type":"ip-dst","toIDS":1,"value":"1.2.3.4"}' https://misp.local/attributes/add | jq -r '.Attribute.uuid'</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Ejemplo de pipeline para enviar IoCs a controladores externos.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Integración -->
+    <section id="integracion">
+      <h2>Integración con TheHive / Splunk / SOAR <span class="label">Comandos de Terminal</span></h2>
+      <div class="cards">
+        <div class="card">
+          <div class="cmd"># TheHive: crear caso desde MISP (enriquecido)
+curl -sk -H "Authorization: Bearer &lt;HIVE_TOKEN&gt;" -H "Content-Type: application/json" \
+ -d '{"title":"MISP → Caso IOC","severity":2,"tlp":2,"tags":["MISP","IOC"],"description":"Caso creado con IoCs MISP"}' \
+ https://thehive.local/api/case | jq '.id'</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Genera caso en TheHive a partir de inteligencia MISP.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Splunk: ingesta de export MISP (JSON)
+curl -s -H "Authorization: Splunk &lt;TOKEN&gt;" -d sourcetype=misp:json \
+ --data-binary @eventos_filtrados.json https://splunk.local:8088/services/collector</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Envío de eventos de MISP a Splunk HEC para correlación.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># SOAR (ejemplo genérico): enviar artefacto a playbook
+curl -s -X POST https://soar.local/api/v1/events -H "Authorization: Bearer &lt;SOAR_TOKEN&gt;" \
+ -H "Content-Type: application/json" -d '{"type":"ioc","value":"1.2.3.4","source":"misp"}'</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Dispara playbooks de contención basados en IoC.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Sync / Roles -->
+    <section id="sync">
+      <h2>Mantenimiento, Sincronización y Roles <span class="label">Comandos de Terminal</span></h2>
+      <div class="cards">
+        <div class="card">
+          <div class="cmd"># Sincronizar con instancia remota MISP (pull)
+curl -sk -H "Authorization: &lt;MISP_KEY&gt;" -H "Content-Type: application/json" \
+ -d '{"server":"misp-remote","pull":true,"push":false,"publish_without_email":true}' \
+ https://misp.local/servers/pull</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Sincroniza eventos desde un servidor remoto confiable.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Actualizar taxonomías/galaxies</div>
+          <div class="cmd">curl -sk -H "Authorization: &lt;MISP_KEY&gt;" https://misp.local/taxonomies/update</div>
+          <div class="cmd">curl -sk -H "Authorization: &lt;MISP_KEY&gt;" https://misp.local/galaxies/update</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Mantiene al día vocabularios y mapeos.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Crear usuario con rol 'Org Admin' (ejemplo API)
+curl -sk -H "Authorization: &lt;MISP_KEY&gt;" -H "Content-Type: application/json" \
+ -d '{"email":"analista@empresa.com","org_id":1,"role_id":3,"password":"&lt;PASS&gt;"}' \
+ https://misp.local/admin/users/add</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Provisiona usuarios y roles vía API.</div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<footer>Manual SOC — MISP e Inteligencia de Amenazas</footer>
+<button id="topBtn" title="Volver arriba">⬆</button>
+
+<script>
+// Copiar: concatena todos los bloques .cmd de la tarjeta (si hay varios)
+document.querySelectorAll('.card .btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const cmds = Array.from(btn.parentElement.querySelectorAll('.cmd')).map(d=>d.innerText).join('\n');
+    navigator.clipboard.writeText(cmds).then(() => {
+      const prev = btn.textContent; btn.textContent = 'Copiado';
+      setTimeout(() => btn.textContent = prev, 1200);
+    });
+  });
+});
+// Búsqueda
+document.getElementById('q').addEventListener('input', e => {
+  const term = e.target.value.toLowerCase();
+  document.querySelectorAll('main section').forEach(sec => {
+    let any=false;
+    sec.querySelectorAll('.card').forEach(card => {
+      const hit = card.textContent.toLowerCase().includes(term);
+      card.style.display = hit ? 'flex' : 'none';
+      if (hit) any = true;
+    });
+    sec.style.display = (any || !term) ? 'block' : 'none';
+  });
+});
+// Botón arriba
+const topBtn = document.getElementById('topBtn');
+window.addEventListener('scroll', () => {
+  topBtn.style.display = (document.documentElement.scrollTop > 400) ? 'flex' : 'none';
+});
+topBtn.addEventListener('click', () => {
+  window.scrollTo({top: 0, behavior: 'smooth'});
+});
+</script>
+</body>
+</html>

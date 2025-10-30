@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Respuesta y Contención — Manual SOC (v2)</title>
+<style>
+:root{
+  --bg:#0b1020;--panel:#121a33;--muted:#98a2b3;--text:#e6e8ef;--chip:#243056;--border:#1d2747;--card:#0f162b;
+}
+html{scroll-behavior:smooth}
+*{box-sizing:border-box}
+body{margin:0;background:linear-gradient(180deg,#0a0f21,#0b1126);color:var(--text);
+  font:14px/1.6 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,"Helvetica Neue",Arial;}
+header{position:sticky;top:0;z-index:100;background:rgba(11,17,38,.85);
+  border-bottom:1px solid var(--border);backdrop-filter:saturate(180%) blur(10px)}
+.wrap{max-width:1100px;margin:auto;padding:16px}
+h1{margin:8px 0 4px;font-size:22px}
+.subtitle{margin:0 0 12px;color:var(--muted)}
+.grid{display:grid;grid-template-columns:260px 1fr;gap:16px}
+@media(max-width:900px){.grid{grid-template-columns:1fr}nav{position:static;max-height:none}}
+nav{position:sticky;top:86px;align-self:start;background:var(--panel);border:1px solid var(--border);
+  border-radius:14px;padding:8px;max-height:calc(100vh - 110px);overflow:auto}
+.cat{display:block;padding:10px 12px;border-radius:10px;color:#cdd3ea;text-decoration:none;border:1px solid transparent}
+.cat:hover{background:var(--chip);border-color:#2a3864}
+main{display:grid;gap:16px}
+section{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:12px}
+section h2{margin:6px 6px 8px;font-size:17px;display:flex;justify-content:space-between;align-items:center}
+.label{font-size:12px;color:#a0aec0;border:1px solid #2a3864;background:#0f162b;padding:3px 8px;border-radius:8px;white-space:nowrap}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:6px}
+.cmd{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:#0e1a3a;border:1px solid #223464;border-radius:8px;padding:8px;color:#e6eeff}
+.desc{color:#a0aec0;font-size:13px}
+.btn{align-self:flex-start;border:1px solid var(--border);background:var(--chip);color:#cdd8ff;padding:6px 10px;border-radius:8px;cursor:pointer;font-size:13px}
+.btn:hover{border-color:#32406f}
+.searchbar{margin-top:8px;margin-bottom:12px}
+input[type=search]{width:100%;padding:10px;border-radius:8px;border:1px solid var(--border);background:#0c1430;color:var(--text)}
+#topBtn{position:fixed;bottom:25px;right:25px;background:#243056;border:1px solid #32406f;color:#cdd8ff;
+  border-radius:50%;width:45px;height:45px;font-size:22px;cursor:pointer;display:none;align-items:center;justify-content:center;transition:0.3s}
+#topBtn:hover{background:#32406f}
+footer{color:var(--muted);text-align:center;padding:16px}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <h1>Respuesta y Contención</h1>
+  <p class="subtitle">Acciones inmediatas de contención, erradicación y recuperación. Comandos de terminal listos para usar.</p>
+  <div class="searchbar"><input id="q" type="search" placeholder="Buscar comando o técnica..."></div>
+</div></header>
+
+<div class="wrap grid">
+  <nav>
+    <a class="cat" href="#aislamiento">Aislamiento de Host</a>
+    <a class="cat" href="#red">Contención de Red / Firewall</a>
+    <a class="cat" href="#cuentas">Contención de Cuentas / AD</a>
+    <a class="cat" href="#erradicacion">Erradicación y Remediación</a>
+    <a class="cat" href="#recuperacion">Recuperación y Validación</a>
+    <a class="cat" href="#comunicacion">Comunicación de Contención</a>
+  </nav>
+
+  <main id="content">
+    <!-- Aislamiento -->
+    <section id="aislamiento">
+      <h2>Aislamiento de Host <span class="label">Comandos de Terminal</span></h2>
+      <div class="cards">
+        <div class="card"><div class="cmd">nmcli dev disconnect eth0</div><button class="btn">Copiar</button><div class="desc">Desconecta interfaz de red (NetworkManager).</div></div>
+        <div class="card"><div class="cmd">ip link set eth0 down</div><button class="btn">Copiar</button><div class="desc">Baja interfaz (sin NetworkManager).</div></div>
+        <div class="card"><div class="cmd">ufw deny out to any</div><button class="btn">Copiar</button><div class="desc">Bloquea todo tráfico saliente (UFW).</div></div>
+        <div class="card"><div class="cmd">iptables -P OUTPUT DROP && iptables -A OUTPUT -d 10.0.0.0/8 -j ACCEPT</div><button class="btn">Copiar</button><div class="desc">Política DROP y permite solo red interna.</div></div>
+        <div class="card"><div class="cmd">systemctl isolate rescue.target</div><button class="btn">Copiar</button><div class="desc">Aísla el sistema en modo rescate multiusuario mínimo.</div></div>
+        <div class="card"><div class="cmd">shutdown -r +1 'Reinicio controlado por contención'</div><button class="btn">Copiar</button><div class="desc">Programa reinicio controlado tras contención.</div></div>
+      </div>
+    </section>
+
+    <!-- Red -->
+    <section id="red">
+      <h2>Contención de Red / Firewall <span class="label">Comandos de Terminal</span></h2>
+      <div class="cards">
+        <div class="card"><div class="cmd">iptables -I INPUT -s 1.2.3.4 -j DROP</div><button class="btn">Copiar</button><div class="desc">Bloquea IP maliciosa entrante.</div></div>
+        <div class="card"><div class="cmd">iptables -I OUTPUT -d 5.6.7.8 -j REJECT</div><button class="btn">Copiar</button><div class="desc">Bloquea destino saliente específico.</div></div>
+        <div class="card"><div class="cmd">nft add rule inet filter output ip daddr 5.6.7.8 drop</div><button class="btn">Copiar</button><div class="desc">Equivalente con nftables.</div></div>
+        <div class="card"><div class="cmd">ufw deny from 1.2.3.4</div><button class="btn">Copiar</button><div class="desc">Bloqueo rápido con UFW.</div></div>
+        <div class="card"><div class="cmd">firewall-cmd --permanent --add-rich-rule='rule family=ipv4 source address=1.2.3.4 reject' && firewall-cmd --reload</div><button class="btn">Copiar</button><div class="desc">Bloqueo permanente con firewalld.</div></div>
+        <div class="card"><div class="cmd">route add -host 8.8.8.8 reject</div><button class="btn">Copiar</button><div class="desc">Rechaza ruta a un host puntual (legacy).</div></div>
+      </div>
+    </section>
+
+    <!-- Cuentas -->
+    <section id="cuentas">
+      <h2>Contención de Cuentas / AD <span class="label">Comandos de Terminal</span></h2>
+      <div class="cards">
+        <div class="card"><div class="cmd">passwd -l usuario</div><button class="btn">Copiar</button><div class="desc">Bloquea cuenta local Linux.</div></div>
+        <div class="card"><div class="cmd">chage -E 0 usuario</div><button class="btn">Copiar</button><div class="desc">Expira cuenta inmediatamente.</div></div>
+        <div class="card"><div class="cmd">wmic useraccount where name='usuario' call disable</div><button class="btn">Copiar</button><div class="desc">Deshabilita cuenta local en Windows (remoto con WMIC).</div></div>
+        <div class="card"><div class="cmd">ldapmodify -x -H ldap://dc.local -D 'cn=admin,dc=local' -W <<EOF
+dn: CN=Usuario,OU=People,DC=local
+changetype: modify
+replace: userAccountControl
+userAccountControl: 514
+EOF</div><button class="btn">Copiar</button><div class="desc">Deshabilita usuario en AD vía LDAP (UAC=514).</div></div>
+        <div class="card"><div class="cmd">samba-tool user disable usuario</div><button class="btn">Copiar</button><div class="desc">Deshabilita usuario en AD desde Samba (Linux).</div></div>
+        <div class="card"><div class="cmd">kinit admin; ipa user-disable usuario</div><button class="btn">Copiar</button><div class="desc">Deshabilita cuenta en FreeIPA/IdM.</div></div>
+      </div>
+    </section>
+
+    <!-- Erradicación -->
+    <section id="erradicacion">
+      <h2>Erradicación y Remediación <span class="label">Comandos de Terminal</span></h2>
+      <div class="cards">
+        <div class="card"><div class="cmd">systemctl stop suspicious.service && systemctl disable suspicious.service</div><button class="btn">Copiar</button><div class="desc">Detiene y deshabilita servicio malicioso.</div></div>
+        <div class="card"><div class="cmd">ps aux | grep -i ransomware | awk '{print $2}' | xargs -r kill -9</div><button class="btn">Copiar</button><div class="desc">Mata procesos por patrón.</div></div>
+        <div class="card"><div class="cmd">find / -type f -name '*.exe' -mtime -1 -path '/tmp/*' -print -delete 2>/dev/null</div><button class="btn">Copiar</button><div class="desc">Elimina dropper reciente en /tmp.</div></div>
+        <div class="card"><div class="cmd">crontab -l | sed '/suspicious.sh/d' | crontab -</div><button class="btn">Copiar</button><div class="desc">Limpia persistencia en crontab del usuario.</div></div>
+        <div class="card"><div class="cmd">sed -i '/suspicious.sh/d' /etc/rc.local</div><button class="btn">Copiar</button><div class="desc">Quita persistencia en rc.local.</div></div>
+        <div class="card"><div class="cmd">grep -Rl 'LD_PRELOAD' /etc/ld.so.preload /etc/profile* /etc/ | xargs -r sed -i '/LD_PRELOAD/d'</div><button class="btn">Copiar</button><div class="desc">Elimina ganchos LD_PRELOAD maliciosos.</div></div>
+      </div>
+    </section>
+
+    <!-- Recuperación -->
+    <section id="recuperacion">
+      <h2>Recuperación y Validación <span class="label">Comandos de Terminal</span></h2>
+      <div class="cards">
+        <div class="card"><div class="cmd">rsync -a --checksum --delete backup/ prod/</div><button class="btn">Copiar</button><div class="desc">Restaura desde backup validando checksums.</div></div>
+        <div class="card"><div class="cmd">sha256sum -c hashes.sha256</div><button class="btn">Copiar</button><div class="desc">Valida integridad de archivos restaurados.</div></div>
+        <div class="card"><div class="cmd">aide --check | tee aide_post.txt</div><button class="btn">Copiar</button><div class="desc">Comparación de integridad del sistema (AIDE).</div></div>
+        <div class="card"><div class="cmd">systemctl daemon-reload && systemctl restart nginx</div><button class="btn">Copiar</button><div class="desc">Recarga systemd y reinicia servicio crítico.</div></div>
+        <div class="card"><div class="cmd">journalctl -p 3 --since '30 min ago'</div><button class="btn">Copiar</button><div class="desc">Verifica errores críticos post-recuperación.</div></div>
+        <div class="card"><div class="cmd">curl -sk https://healthcheck.local/ | grep 'OK'</div><button class="btn">Copiar</button><div class="desc">Healthcheck de aplicación tras recuperación.</div></div>
+      </div>
+    </section>
+
+    <!-- Comunicación -->
+    <section id="comunicacion">
+      <h2>Comunicación de Contención <span class="label">Comandos de Terminal</span></h2>
+      <div class="cards">
+        <div class="card"><div class="cmd">echo '[TLP:AMBER] Host aislado. Puertos bloqueados. ETA remediación 30m.' | mail -s '[SOC] Contención aplicada' stakeholders@empresa.com</div><button class="btn">Copiar</button><div class="desc">Aviso a interesados con estado de contención.</div></div>
+        <div class="card"><div class="cmd">curl -X POST -H 'Content-type: application/json' --data '{"text":"Contención aplicada en host X. Caso #INC-0013"}' https://hooks.slack.com/services/XXX/YYY/ZZZ</div><button class="btn">Copiar</button><div class="desc">Notificación inmediata en Slack/Teams (Webhook).</div></div>
+        <div class="card"><div class="cmd">printf 'INC-0013|CONTAINED|%s\n' "$(date -u +%FT%TZ)" >> tracker.csv</div><button class="btn">Copiar</button><div class="desc">Actualiza estado del incidente a CONTAINED con timestamp.</div></div>
+        <div class="card"><div class="cmd">pandoc informe_contencion.md -o informe_contencion.pdf</div><button class="btn">Copiar</button><div class="desc">Genera informe de contención en PDF.</div></div>
+        <div class="card"><div class="cmd">jq '.status="contained"' caso.json > caso_actualizado.json</div><button class="btn">Copiar</button><div class="desc">Marca el caso como contenido en artefacto JSON.</div></div>
+        <div class="card"><div class="cmd">sqlite3 soc.db "UPDATE incidents SET sev='SEV-2', ts=CURRENT_TIMESTAMP WHERE id='INC-0013';"</div><button class="btn">Copiar</button><div class="desc">Actualiza estado en base local de incidentes.</div></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<footer>Manual de referencia SOC — Respuesta y Contención (v2)</footer>
+<button id="topBtn" title="Volver arriba">⬆</button>
+
+<script>
+// Copiar
+document.querySelectorAll('.card .btn').forEach(btn => {
+  btn.addEventListener('click', e => {
+    const cmd = btn.parentElement.querySelector('.cmd').innerText;
+    navigator.clipboard.writeText(cmd).then(() => {
+      const prev = btn.textContent;
+      btn.textContent = 'Copiado';
+      setTimeout(() => btn.textContent = prev, 1200);
+    });
+  });
+});
+// Búsqueda
+document.getElementById('q').addEventListener('input', e => {
+  const term = e.target.value.toLowerCase();
+  document.querySelectorAll('main section').forEach(sec => {
+    let any = false;
+    sec.querySelectorAll('.card').forEach(card => {
+      const hit = card.textContent.toLowerCase().includes(term);
+      card.style.display = hit ? 'flex' : 'none';
+      if (hit) any = true;
+    });
+    sec.style.display = (any || !term) ? 'block' : 'none';
+  });
+});
+// Botón arriba
+const topBtn = document.getElementById('topBtn');
+window.addEventListener('scroll', () => {
+  topBtn.style.display = (document.documentElement.scrollTop > 400) ? 'flex' : 'none';
+});
+topBtn.addEventListener('click', () => {
+  window.scrollTo({top: 0, behavior: 'smooth'});
+});
+</script>
+</body>
+</html>

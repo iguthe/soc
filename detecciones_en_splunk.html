@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Detecciones en Splunk — Reglas y Dashboards</title>
+<style>
+:root{
+  --bg:#0b1020;--panel:#121a33;--muted:#98a2b3;--text:#e6e8ef;--chip:#243056;--border:#1d2747;--card:#0f162b;
+}
+html{scroll-behavior:smooth}
+*{box-sizing:border-box}
+body{margin:0;background:linear-gradient(180deg,#0a0f21,#0b1126);color:var(--text);
+  font:14px/1.6 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,"Helvetica Neue",Arial;}
+header{position:sticky;top:0;z-index:100;background:rgba(11,17,38,.85);
+  border-bottom:1px solid var(--border);backdrop-filter:saturate(180%) blur(10px)}
+.wrap{max-width:1100px;margin:auto;padding:16px}
+h1{margin:8px 0 4px;font-size:22px}
+.subtitle{margin:0 0 12px;color:var(--muted)}
+.grid{display:grid;grid-template-columns:260px 1fr;gap:16px}
+@media(max-width:900px){.grid{grid-template-columns:1fr}nav{position:static;max-height:none}}
+nav{position:sticky;top:86px;align-self:start;background:var(--panel);border:1px solid var(--border);
+  border-radius:14px;padding:8px;max-height:calc(100vh - 110px);overflow:auto}
+.cat{display:block;padding:10px 12px;border-radius:10px;color:#cdd3ea;text-decoration:none;border:1px solid transparent}
+.cat:hover{background:var(--chip);border-color:#2a3864}
+main{display:grid;gap:16px}
+section{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:12px}
+section h2{margin:6px 6px 8px;font-size:17px;display:flex;justify-content:space-between;align-items:center}
+.label{font-size:12px;color:#a0aec0;border:1px solid #2a3864;background:#0f162b;padding:3px 8px;border-radius:8px;white-space:nowrap}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:6px}
+.cmd{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:#0e1a3a;border:1px solid #223464;border-radius:8px;padding:8px;color:#e6eeff;white-space:pre-wrap}
+.desc{color:#a0aec0;font-size:13px}
+.btn{align-self:flex-start;border:1px solid var(--border);background:var(--chip);color:#cdd8ff;padding:6px 10px;border-radius:8px;cursor:pointer;font-size:13px}
+.btn:hover{border-color:#32406f}
+.searchbar{margin-top:8px;margin-bottom:12px}
+input[type=search]{width:100%;padding:10px;border-radius:8px;border:1px solid var(--border);background:#0c1430;color:var(--text)}
+#topBtn{position:fixed;bottom:25px;right:25px;background:#243056;border:1px solid #32406f;color:#cdd8ff;
+  border-radius:50%;width:45px;height:45px;font-size:22px;cursor:pointer;display:none;align-items:center;justify-content:center;transition:0.3s}
+#topBtn:hover{background:#32406f}
+footer{color:var(--muted);text-align:center;padding:16px}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <h1>Detecciones en Splunk — Reglas y Dashboards</h1>
+  <p class="subtitle">Búsquedas SPL, reglas programadas, notificaciones y dashboards para SOC. Incluye integración con API REST de Splunk.</p>
+  <div class="searchbar"><input id="q" type="search" placeholder="Buscar búsqueda SPL o técnica..."></div>
+</div></header>
+
+<div class="wrap grid">
+  <nav>
+    <a class="cat" href="#basicas">Reglas SPL Básicas</a>
+    <a class="cat" href="#correlacion">Correlación y Notificaciones</a>
+    <a class="cat" href="#dashboards">Dashboards</a>
+    <a class="cat" href="#ingesta">Ingesta y Normalización (CIM)</a>
+    <a class="cat" href="#programadas">Búsquedas Programadas</a>
+    <a class="cat" href="#mitre">Mapeo a MITRE ATT&CK</a>
+    <a class="cat" href="#salud">Salud del Entorno Splunk</a>
+  </nav>
+
+  <main id="content">
+    <!-- Básicas -->
+    <section id="basicas">
+      <h2>Reglas SPL Básicas <span class="label">Comandos de Terminal</span></h2>
+      <div class="cards">
+        <div class="card">
+          <div class="cmd">index=wineventlog EventCode=4625 | stats count by Account_Name, Workstation_Name | sort - count</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Logons fallidos por cuenta y host (brute-force).</div>
+        </div>
+        <div class="card">
+          <div class="cmd">index=sysmon EventCode=1 (CommandLine="*base64*" OR Image="*powershell.exe*") | stats count by User, Host, Image, CommandLine | sort - count</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Ejecución de PowerShell/ofuscación con Base64.</div>
+        </div>
+        <div class="card">
+          <div class="cmd">index=proxy method=CONNECT status=200 | stats count by dest, user | sort - count</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Uso de túneles HTTP CONNECT.</div>
+        </div>
+        <div class="card">
+          <div class="cmd">index=dns (query="*.onion" OR query="*top" OR query="*country") | stats count by query, src | sort - count</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Dominios y TLDs raros/sospechosos.</div>
+        </div>
+        <div class="card">
+          <div class="cmd">index=endpoint (process="*rundll32.exe*" OR cmdline="*FromBase64String*") | stats count by user, host, process, cmdline | sort - count</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Ejecuciones sospechosas en endpoints.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Correlación -->
+    <section id="correlacion">
+      <h2>Correlación y Notificaciones <span class="label">Comandos de Terminal</span></h2>
+      <div class="cards">
+        <div class="card">
+          <div class="cmd">| tstats count where index=wineventlog by host</div>
+          <div class="cmd">| join host [ search index=proxy status=200 method=CONNECT | stats count as proxy_count by host ]</div>
+          <div class="cmd">| where proxy_count &gt; 50</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Correlación entre Windows logons y uso inusual de proxy.</div>
+        </div>
+        <div class="card">
+          <div class="cmd">search index=alerts severity&gt;=3 | stats count by title, host | where count &gt;= 3</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Regla de umbral a partir de un índice de alertas.</div>
+        </div>
+        <div class="card">
+          <div class="cmd">curl -s -H "Authorization: Splunk &lt;TOKEN&gt;" -d search='search index=alerts severity&gt;=4 | head 5' -d output_mode=json https://splunk.local:8089/services/search/jobs/export | jq '.results'</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Ejecutar búsqueda por API y procesar con jq.</div>
+        </div>
+        <div class="card">
+          <div class="cmd">curl -s -k -u admin:changeme https://splunk.local:8089/servicesNS/admin/search/saved/searches -d name="ALERTA_BF_4625" -d search='index=wineventlog EventCode=4625 | stats count by Account_Name | where count &gt; 20' -d action.email="1" -d action.email.to="soc@empresa.com" -d is_scheduled="1" -d cron_schedule="*/5 * * * *"</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Crear una saved search con notificación por e-mail.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Dashboards -->
+    <section id="dashboards">
+      <h2>Dashboards <span class="label">Comandos de Terminal</span></h2>
+      <div class="cards">
+        <div class="card">
+          <div class="cmd">&lt;dashboard&gt;
+  &lt;label&gt;SOC - Proxy Overview&lt;/label&gt;
+  &lt;row&gt;
+    &lt;panel&gt;
+      &lt;chart&gt;
+        &lt;search&gt;index=proxy | timechart span=5m count by status&lt;/search&gt;
+      &lt;/chart&gt;
+    &lt;/panel&gt;
+  &lt;/row&gt;
+&lt;/dashboard&gt;</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">XML de ejemplo para un dashboard simple (clásico).</div>
+        </div>
+        <div class="card">
+          <div class="cmd">curl -s -k -u admin:changeme https://splunk.local:8089/services/data/ui/views -d name="soc_proxy_overview" -d "eai:data=&lt;dashboard&gt;...&lt;/dashboard&gt;"</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Crear vista de dashboard por API.</div>
+        </div>
+        <div class="card">
+          <div class="cmd">index=proxy status=200 | timechart span=10m count by user</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Búsqueda para gráfico por usuario.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Ingesta y CIM -->
+    <section id="ingesta">
+      <h2>Ingesta y Normalización (CIM) <span class="label">Comandos de Terminal</span></h2>
+      <div class="cards">
+        <div class="card">
+          <div class="cmd">| datamodel Network_Traffic search</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Verificar que la data normalizada esté disponible (CIM).</div>
+        </div>
+        <div class="card">
+          <div class="cmd">sourcetype=WinEventLog:Security | head 20</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Chequear sourcetype y campos extraídos.</div>
+        </div>
+        <div class="card">
+          <div class="cmd">| makeresults | eval CIM_check=if(isnull(src) OR isnull(dest), "faltan_campos", "ok")</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Ejemplo de verificación rápida de campos CIM.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Programadas -->
+    <section id="programadas">
+      <h2>Búsquedas Programadas <span class="label">Comandos de Terminal</span></h2>
+      <div class="cards">
+        <div class="card">
+          <div class="cmd">curl -s -k -u admin:changeme https://splunk.local:8089/servicesNS/admin/search/saved/searches/ALERTA_BF_4625 -d is_scheduled="1" -d cron_schedule="*/5 * * * *" -d actions="email"</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Programar y activar acciones para una búsqueda guardada.</div>
+        </div>
+        <div class="card">
+          <div class="cmd">curl -s -k -u admin:changeme https://splunk.local:8089/services/search/jobs -d search='search index=endpoint | stats count by host' -d cron="0 * * * *"</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Crear job por API (ejemplo).</div>
+        </div>
+        <div class="card">
+          <div class="cmd">| rest /servicesNS/admin/search/saved/searches | table title,search,action.email.to,is_scheduled,cron_schedule</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Inventariar búsquedas guardadas y su programación.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- MITRE -->
+    <section id="mitre">
+      <h2>Mapeo a MITRE ATT&amp;CK <span class="label">Comandos de Terminal</span></h2>
+      <div class="cards">
+        <div class="card">
+          <div class="cmd">index=sysmon (EventCode=1 process_name="powershell.exe" OR process_name="cmd.exe") | eval tactic="Execution", technique="T1059" | stats count by tactic, technique, user, host</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Ejemplo de mapeo manual a táctica/tecnología ATT&amp;CK.</div>
+        </div>
+        <div class="card">
+          <div class="cmd">index=wineventlog (EventCode=4688 OR EventCode=4697) | eval tactic="Persistence", technique="T1053" | stats count by technique, host</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Persistencia via creación de procesos/servicios.</div>
+        </div>
+        <div class="card">
+          <div class="cmd">| inputlookup mitre_techniques.csv | search technique="T1059" | stats count by subtechnique, description</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Uso de lookups locales para enriquecer mapeos.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Salud -->
+    <section id="salud">
+      <h2>Salud del Entorno Splunk <span class="label">Comandos de Terminal</span></h2>
+      <div class="cards">
+        <div class="card">
+          <div class="cmd">| rest /services/server/status/| fields server_name, splunk_version, os_build, uptime</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Estado general de servidores Splunk.</div>
+        </div>
+        <div class="card">
+          <div class="cmd">| rest /services/data/indexes | table title,currentDBSizeMB,homePath,maxTotalDataSizeMB</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Uso de espacio por índice.</div>
+        </div>
+        <div class="card">
+          <div class="cmd">| rest /servicesNS/-/-/admin/inputs/tcp/raw/cooked | stats count by disabled, host, sourcetype, index</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Inputs TCP y estado habilitado/deshabilitado.</div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<footer>Manual SOC — Detecciones en Splunk (Reglas y Dashboards)</footer>
+<button id="topBtn" title="Volver arriba">⬆</button>
+
+<script>
+// Copiar: solo copia el/los bloques .cmd dentro de la tarjeta (no la descripción)
+document.querySelectorAll('.card .btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const cmds = Array.from(btn.parentElement.querySelectorAll('.cmd')).map(d=>d.innerText).join('\n');
+    navigator.clipboard.writeText(cmds).then(() => {
+      const prev = btn.textContent; btn.textContent = 'Copiado';
+      setTimeout(() => btn.textContent = prev, 1200);
+    });
+  });
+});
+// Búsqueda
+document.getElementById('q').addEventListener('input', e => {
+  const term = e.target.value.toLowerCase();
+  document.querySelectorAll('main section').forEach(sec => {
+    let any=false;
+    sec.querySelectorAll('.card').forEach(card => {
+      const hit = card.textContent.toLowerCase().includes(term);
+      card.style.display = hit ? 'flex' : 'none';
+      if (hit) any = true;
+    });
+    sec.style.display = (any || !term) ? 'block' : 'none';
+  });
+});
+// Botón arriba
+const topBtn = document.getElementById('topBtn');
+window.addEventListener('scroll', () => {
+  topBtn.style.display = (document.documentElement.scrollTop > 400) ? 'flex' : 'none';
+});
+topBtn.addEventListener('click', () => {
+  window.scrollTo({top: 0, behavior: 'smooth'});
+});
+</script>
+</body>
+</html>

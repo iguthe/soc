@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hardening y Controles Preventivos — Manual SOC</title>
+<style>
+:root{
+  --bg:#0b1020;--panel:#121a33;--muted:#98a2b3;--text:#e6e8ef;--chip:#243056;--border:#1d2747;--card:#0f162b;
+}
+html{scroll-behavior:smooth}
+*{box-sizing:border-box}
+body{margin:0;background:linear-gradient(180deg,#0a0f21,#0b1126);color:var(--text);
+  font:14px/1.6 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,"Helvetica Neue",Arial;}
+header{position:sticky;top:0;z-index:100;background:rgba(11,17,38,.85);
+  border-bottom:1px solid var(--border);backdrop-filter:saturate(180%) blur(10px)}
+.wrap{max-width:1100px;margin:auto;padding:16px}
+h1{margin:8px 0 4px;font-size:22px}
+.subtitle{margin:0 0 12px;color:var(--muted)}
+.grid{display:grid;grid-template-columns:260px 1fr;gap:16px}
+@media(max-width:900px){.grid{grid-template-columns:1fr}nav{position:static;max-height:none}}
+nav{position:sticky;top:86px;align-self:start;background:var(--panel);border:1px solid var(--border);
+  border-radius:14px;padding:8px;max-height:calc(100vh - 110px);overflow:auto}
+.cat{display:block;padding:10px 12px;border-radius:10px;color:#cdd3ea;text-decoration:none;border:1px solid transparent}
+.cat:hover{background:var(--chip);border-color:#2a3864}
+main{display:grid;gap:16px}
+section{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:12px}
+section h2{margin:6px 6px 8px;font-size:17px;display:flex;justify-content:space-between;align-items:center}
+.label{font-size:12px;color:#a0aec0;border:1px solid #2a3864;background:#0f162b;padding:3px 8px;border-radius:8px;white-space:nowrap}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:6px}
+.cmd{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:#0e1a3a;border:1px solid #223464;border-radius:8px;padding:8px;color:#e6eeff;white-space:pre-wrap}
+.desc{color:#a0aec0;font-size:13px}
+.btn{align-self:flex-start;border:1px solid var(--border);background:var(--chip);color:#cdd8ff;padding:6px 10px;border-radius:8px;cursor:pointer;font-size:13px}
+.btn:hover{border-color:#32406f}
+.searchbar{margin-top:8px;margin-bottom:12px}
+input[type=search]{width:100%;padding:10px;border-radius:8px;border:1px solid var(--border);background:#0c1430;color:#e6e8ef}
+#topBtn{position:fixed;bottom:25px;right:25px;background:#243056;border:1px solid #32406f;color:#cdd8ff;
+  border-radius:50%;width:45px;height:45px;font-size:22px;cursor:pointer;display:none;align-items:center;justify-content:center;transition:0.3s}
+#topBtn:hover{background:#32406f}
+footer{color:var(--muted);text-align:center;padding:16px}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <h1>Hardening y Controles Preventivos</h1>
+  <p class="subtitle">Comandos y buenas prácticas para endurecer hosts, redes y servicios según CIS/NIST/ISO.</p>
+  <div class="searchbar"><input id="q" type="search" placeholder="Buscar control, comando o referencia..."></div>
+</div></header>
+
+<div class="wrap grid">
+  <nav>
+    <a class="cat" href="#principios">Principios (CIS / NIST / ISO)</a>
+    <a class="cat" href="#linux">Seguridad en Linux</a>
+    <a class="cat" href="#windows">Seguridad en Windows</a>
+    <a class="cat" href="#acceso">Control de Acceso y Autenticación</a>
+    <a class="cat" href="#firewall">Firewall, IDS y Reglas de Red</a>
+    <a class="cat" href="#monitorizacion">Monitorización y Logs</a>
+    <a class="cat" href="#herramientas">Herramientas y Auditorías</a>
+  </nav>
+
+  <main id="content">
+    <!-- Principios -->
+    <section id="principios">
+      <h2>Principios de Hardening <span class="label">Controles & Comandos</span></h2>
+      <div class="cards">
+        <div class="card">
+          <div class="cmd"># Actualiza sistemas y paquetes (Linux)
+sudo apt update && sudo apt -y upgrade</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Mantener parches al día es control CIS básico.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Revisar control CIS básico: cuentas, servicios y puertos
+ss -tulpen | sort -k5</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Lista sockets/servicios escuchando y asociados a procesos.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Aplicar políticas de auditoría mínima (ejemplo Linux: auditd)
+sudo apt install -y auditd audispd-plugins
+sudo auditctl -e 1</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Habilita auditd para capturar eventos de seguridad.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Linux -->
+    <section id="linux">
+      <h2>Seguridad en Linux <span class="label">Comandos & Ejemplos</span></h2>
+      <div class="cards">
+        <div class="card">
+          <div class="cmd"># Deshabilitar cuentas sin uso
+sudo awk -F: '($2=="*" || $2=="!" ) && $3>=1000 { print $1 }' /etc/shadow</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Detecta cuentas sin contraseña para revisión.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Permisos seguros en /etc/ssh
+sudo chmod 600 /etc/ssh/ssh_host_*key
+sudo chown root:root /etc/ssh/ssh_host_*key</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Asegura claves host SSH.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Deshabilitar root login por SSH
+sudo sed -i 's/^#*PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config && sudo systemctl reload sshd</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Evita acceso directo con root por SSH.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Habilitar UFW con reglas básicas
+sudo ufw default deny incoming
+sudo ufw default allow outgoing
+sudo ufw allow 22/tcp
+sudo ufw enable</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Política por defecto restrictiva con UFW.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Aplicar umask restrictiva en /etc/profile
+sudo sed -i 's/^UMASK.*/UMASK 027/' /etc/login.defs</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Establece permisos por defecto más seguros para nuevos archivos.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Windows -->
+    <section id="windows">
+      <h2>Seguridad en Windows <span class="label">Comandos & GPO</span></h2>
+      <div class="cards">
+        <div class="card">
+          <div class="cmd"># Instalar actualizaciones vía PowerShell (Windows Server)
+Install-Module PSWindowsUpdate -Force
+Get-WindowsUpdate -Install -AcceptAll -AutoReboot</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Mantener parches con módulo PSWindowsUpdate.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Bloquear ejecución remota de PowerShell (aplicar GPO/ConstrainedLanguage)
+Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\PowerShell\1\ShellIds\Microsoft.PowerShell' -Name 'ExecutionPolicy' -Value 'AllSigned'</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Política básica de ejecución para mitigar scripts maliciosos.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Revisar cuentas locales con PowerShell
+Get-LocalUser | Select Name,Enabled,LastLogon</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Identifica cuentas deshabilitadas o inactivas.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Configurar Windows Firewall (bloquear todo por defecto)
+New-NetFirewallRule -DisplayName 'Allow RDP' -Direction Inbound -LocalPort 3389 -Protocol TCP -Action Allow</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Ejemplo: añadir regla específica y mantener resto bloqueado.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Acceso -->
+    <section id="acceso">
+      <h2>Control de Acceso y Autenticación <span class="label">SSH, PAM y MFA</span></h2>
+      <div class="cards">
+        <div class="card">
+          <div class="cmd"># Forzar autenticación por clave y deshabilitar contraseña
+sudo sed -i 's/^#PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config && sudo systemctl reload sshd</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Mejora significativamente seguridad de SSH.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Configurar PAM para bloqueo tras varias fallas (faillock)
+sudo bash -c 'cat >> /etc/pam.d/common-auth' <<'PAM'
+auth required pam_faillock.so preauth silent audit deny=5 unlock_time=900
+auth [default=die] pam_faillock.so authfail audit deny=5 unlock_time=900
+PAM</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Bloqueo temporal tras 5 intentos fallidos.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Habilitar MFA en Linux usando Google Authenticator PAM
+sudo apt install libpam-google-authenticator
+echo 'auth required pam_google_authenticator.so' | sudo tee -a /etc/pam.d/sshd
+sudo sed -i 's/^#ChallengeResponseAuthentication.*/ChallengeResponseAuthentication yes/' /etc/ssh/sshd_config
+sudo systemctl reload sshd</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Implementa segundo factor TOTP para SSH.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Revisar y expulsar sesiones SSH con usuarios no esperados
+who | awk '{print $1, $5, $6, $7}'</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Monitorea sesiones activas y origen.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Firewall -->
+    <section id="firewall">
+      <h2>Firewall, IDS y Reglas de Red <span class="label">Snort/Suricata/iptables</span></h2>
+      <div class="cards">
+        <div class="card">
+          <div class="cmd"># Ejemplo Suricata: correr en modo IDS
+suricata -c /etc/suricata/suricata.yaml -i eth0</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Inicia Suricata para inspección de tráfico en interfaz eth0.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Reglas básicas iptables para permitir solo HTTP/HTTPS y SSH
+iptables -P INPUT DROP
+iptables -A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+iptables -A INPUT -p tcp --dport 22 -j ACCEPT
+iptables -A INPUT -p tcp --dport 80 -j ACCEPT
+iptables -A INPUT -p tcp --dport 443 -j ACCEPT</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Política restrictiva con excepciones necesarias.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Habilitar bloqueo geográfico básico (blocklist by country) ejemplo con ipset
+ipset create block_cn hash:net
+ipset add block_cn 1.2.3.0/24
+iptables -I INPUT -m set --match-set block_cn src -j DROP</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Ejemplo de filtrado agregado por IP sets.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Actualizar reglas de Snort/Suricata con PulledPork/Oinkmaster (ejemplo)
+pulledpork.pl -c /etc/pulledpork/pulledpork.conf -l</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Mantiene firmas IDS actualizadas.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Monitorizacion -->
+    <section id="monitorizacion">
+      <h2>Monitorización y Logs <span class="label">Auditoría & SIEM</span></h2>
+      <div class="cards">
+        <div class="card">
+          <div class="cmd"># Enviar logs a rsyslog/remote SIEM (ejemplo HEC Splunk)
+echo '*.* @@splunk-hec:514' | sudo tee -a /etc/rsyslog.d/50-splunk.conf && sudo systemctl restart rsyslog</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Configura reenvío de logs a colector central.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Habilitar auditd watch para /etc/passwd
+sudo auditctl -w /etc/passwd -p wa -k passwd_changes</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Monitorea cambios críticos en archivos de sistema.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Verificar integridad de binarios con AIDE
+sudo aideinit && sudo aide --check</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Detecta modificaciones no autorizadas en filesystem.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Configurar alertas de uso de disco (cron + mail)
+echo '0 2 * * * root df -h | awk '''$5+0 >= 80 {print}''' | mail -s "Disk Alert" admin@empresa.com' | sudo tee /etc/cron.d/disk_alert</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Notificaciones automáticas cuando disco supera 80%.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Herramientas -->
+    <section id="herramientas">
+      <h2>Herramientas y Auditorías <span class="label">Scans & Benchmarks</span></h2>
+      <div class="cards">
+        <div class="card">
+          <div class="cmd"># Escaneo de vulnerabilidades (Nmap rápido)
+sudo nmap -sS -T4 -p- -oA nmap_full_scan 192.168.1.0/24</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Descubre puertos abiertos y servicios en red.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Ejecutar Lynis (auditoría de seguridad)
+sudo lynis audit system</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Auditoría automatizada con recomendaciones CIS.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Aplicar CIS Benchmark (instalar cis-cat y ejecutar)
+java -jar cis-cat.jar -a -b /path/to/CIS_Benchmark_Rules.xml -o report.html</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Evalúa conformidad contra benchmark CIS.</div>
+        </div>
+        <div class="card">
+          <div class="cmd"># Automatizar hardening con Ansible (playbook ejemplo)
+ansible-playbook -i inventory hardening.yml --limit webservers</div>
+          <button class="btn">Copiar</button>
+          <div class="desc">Despliega controles de forma repetible con Ansible.</div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<footer>Manual SOC — Hardening y Controles Preventivos</footer>
+<button id="topBtn" title="Volver arriba">⬆</button>
+
+<script>
+// Copiar: concatena todos los bloques .cmd de la tarjeta (si hay varios)
+document.querySelectorAll('.card .btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const cmds = Array.from(btn.parentElement.querySelectorAll('.cmd')).map(d=>d.innerText).join('\n');
+    navigator.clipboard.writeText(cmds).then(() => {
+      const prev = btn.textContent; btn.textContent = 'Copiado';
+      setTimeout(() => btn.textContent = prev, 1200);
+    });
+  });
+});
+// Búsqueda
+document.getElementById('q').addEventListener('input', e => {
+  const term = e.target.value.toLowerCase();
+  document.querySelectorAll('main section').forEach(sec => {
+    let any=false;
+    sec.querySelectorAll('.card').forEach(card => {
+      const hit = card.textContent.toLowerCase().includes(term);
+      card.style.display = hit ? 'flex' : 'none';
+      if (hit) any = true;
+    });
+    sec.style.display = (any || !term) ? 'block' : 'none';
+  });
+});
+// Botón arriba
+const topBtn = document.getElementById('topBtn');
+window.addEventListener('scroll', () => {
+  topBtn.style.display = (document.documentElement.scrollTop > 400) ? 'flex' : 'none';
+});
+topBtn.addEventListener('click', () => {
+  window.scrollTo({top: 0, behavior: 'smooth'});
+});
+</script>
+</body>
+</html>
